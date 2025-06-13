@@ -25,13 +25,25 @@ print()
 print()
 print("number of nodes:", len(parsed_basic_doc.nodes))
 print()
-last_node = parsed_basic_doc.nodes[-1]
-for elem in last_node.elements:
-	if elem.type == "table":
-		print("Table found with", len(elem.rows), "rows and", len(elem.columns), "columns.")
-		for row in elem.rows:
-			print("Row:", [cell.text for cell in row.cells])
-	elif elem.type == "text":
-		print("Text element:", elem.text)
-	else:
-		print("Other element type:", elem.type)
+i=0
+for node in parsed_basic_doc.nodes:
+	for elem in node.elements:
+		i=i+1
+		print(i)
+		print(elem.variant)
+		if isinstance(elem, openparse.TextElement):
+			print(elem.text)
+		elif isinstance(elem, openparse.TableElement):
+			print(elem.text)
+		else:
+			print(elem)
+		print()
+
+	# if elem.type == "table":
+	# 	print("Table found with", len(elem.rows), "rows and", len(elem.columns), "columns.")
+	# 	for row in elem.rows:
+	# 		print("Row:", [cell.text for cell in row.cells])
+	# elif elem.type == "text":
+	# 	print("Text element:", elem.text)
+	# else:
+	# 	print("Other element type:", elem.type)
