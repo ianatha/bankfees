@@ -1,3 +1,20 @@
 PyPDF2
 meilisearch
 reportlab
+google-genai
+pydantic
+camelot-py
+pandas
+pdf2image
+transformers
+torch
+pytesseract
+openparse
+huggingface_hub
+fasttext
+pip install 'git+https://github.com/facebookresearch/detectron2.git'
+python -m pip install --user ninja wheel
+
+# now install detectron2 without isolation:
+python -m pip install --no-build-isolation \
+    'git+https://github.com/facebookresearch/detectron2.git' --user
