@@ -6,14 +6,17 @@ import { PdfViewer } from "@/components/pdf-viewer";
 import { SearchResults } from "@/components/search-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSearchResults } from "@/hooks/use-search-results";
 import { parseSearchInput } from "@/lib/utils";
-import { Search } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function SearchInterface() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
   const [selectedResult, setSelectedResult] = useState<{
     bankName: string;
     documentUrl: string;
@@ -23,6 +26,8 @@ export function SearchInterface() {
 
   const { results, isLoading, error, performSearch } = useSearchResults();
   const searchParams = useSearchParams();
+
+  const allBanks = ["alpha", "attica", "eurobank", "nbg", "piraeus"];
 
   useEffect(() => {
     // Check if there's a document parameter in the URL
@@ -37,10 +42,31 @@ export function SearchInterface() {
     }
   }, [searchParams]);
 
+  const toggleBankSelection = (bank: string) => {
+    setSelectedBanks((prev) =>
+      prev.includes(bank) ? prev.filter((b) => b !== bank) : [...prev, bank]
+    )
+  }
+
+  useEffect(() => {
+    const query = `${searchQuery} ${selectedBanks
+      .map((b) => `bank:${b}`)
+      .join(" ")}`.trim()
+    if (query.length === 0) {
+      performSearch("")
+    } else if (query.length >= 2) {
+      performSearch(query)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBanks])
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      performSearch(searchQuery);
+    const query = `${searchQuery} ${selectedBanks
+      .map((b) => `bank:${b}`)
+      .join(" ")}`.trim();
+    if (query.length) {
+      performSearch(query);
     }
   };
 
@@ -49,7 +75,7 @@ export function SearchInterface() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6">
       <div className="flex flex-col gap-6">
-        <form onSubmit={handleSearch} className="flex gap-2">
+        <form onSubmit={handleSearch} className="flex gap-2 items-start">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 h-4 w-4" />
             <Input
@@ -59,15 +85,39 @@ export function SearchInterface() {
               onChange={(e) => {
                 setSearchQuery(e.target.value);
                 const newSearchQuery = e.target.value.trim();
-                if (newSearchQuery.length === 0) {
-                  performSearch(""); // Clear results on empty input
-                } else if (newSearchQuery.length >= 2) {
-                  performSearch(newSearchQuery); // Perform search on input change
+                const query = `${newSearchQuery} ${selectedBanks
+                  .map((b) => `bank:${b}`)
+                  .join(" ")}`.trim();
+                if (query.length === 0) {
+                  performSearch("");
+                } else if (query.length >= 2) {
+                  performSearch(query);
                 }
               }}
               className="pl-10"
             />
           </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button type="button" variant="outline" className="shrink-0">
+                <Filter className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-40" align="start">
+              <div className="flex flex-col gap-2">
+                {allBanks.map((bank) => (
+                  <label key={bank} className="flex items-center gap-2 text-sm capitalize">
+                    <Checkbox
+                      checked={selectedBanks.includes(bank)}
+                      onCheckedChange={() => toggleBankSelection(bank)}
+                      id={`bank-${bank}`}
+                    />
+                    {bank}
+                  </label>
+                ))}
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button type="submit">Αναζήτηση</Button>
         </form>
 
