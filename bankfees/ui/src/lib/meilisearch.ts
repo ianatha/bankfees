@@ -79,7 +79,7 @@ export async function searchMeiliSearch(
         bank: hit.bank,
         filename: hit.filename,
         path: hit.path,
-        page: hit.page - 1,
+        page: hit.page,
         content: hit.content,
         highlight,
         contextSnippets,

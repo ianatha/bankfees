@@ -143,7 +143,7 @@ export function PdfLibrary() {
                       <BankLogo bankName={bank.bankName} size="md" className="shadow-sm" />
                       {bank.bankName}
                     </div>
-                    <Badge variant="secondary">{bank.documents.length} documents</Badge>
+                    <Badge variant="secondary">{bank.documents.length} έγγραφα</Badge>
                   </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent>

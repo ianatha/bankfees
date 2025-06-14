@@ -37,6 +37,7 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
         create_task = meili.create_index(uid=index_name, options={"primaryKey": "id"})
         meili.wait_for_task(create_task.task_uid)
         index = meili.get_index(index_name)
+        index.update_filterable_attributes(["bank"])
 
     buffer = []
     for bank_folder in root_dir.iterdir():
@@ -57,10 +58,10 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
 
             for page_idx, page_text in enumerate(pages, start=1):
                 # combine previous page's text as context
-                if prev_text:
-                    content = prev_text + "\n" + page_text
-                else:
-                    content = page_text
+                # if prev_text:
+                    # content = prev_text + "\n" + page_text
+                # else:
+                content = page_text
 
                 doc_id = f"{bank_name}_{document_name_hash}_{document_mtime}_p{page_idx}"
                 doc = {

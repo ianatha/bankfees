@@ -12,6 +12,8 @@ import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import { CustomTextRenderer } from "react-pdf/src/shared/types.js";
 import { ScrollIndicator } from "./scroll-indicator";
+import AutoSizer from "react-virtualized-auto-sizer";
+import { FixedSizeList } from "react-window";
 
 // Set up the worker for PDF.js
 pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
@@ -91,66 +93,66 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
     }
   }
 
-  const handleScroll = useCallback(
-    (e: Event) => {
-      if (!scrollContainerRef.current || !numPages) return;
+  // const handleScroll = useCallback(
+  //   (e: Event) => {
+  //     if (!scrollContainerRef.current || !numPages) return;
 
-      const container = scrollContainerRef.current;
-      const scrollTop = container.scrollTop;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
+  //     const container = scrollContainerRef.current;
+  //     const scrollTop = container.scrollTop;
+  //     const scrollHeight = container.scrollHeight;
+  //     const clientHeight = container.clientHeight;
 
-      // Clear existing timeout
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
+  //     // Clear existing timeout
+  //     if (scrollTimeout.current) {
+  //       clearTimeout(scrollTimeout.current);
+  //     }
 
-      // Define thresholds for page navigation
-      const bottomThreshold = scrollHeight - clientHeight - 30;
-      const topThreshold = 30;
+  //     // Define thresholds for page navigation
+  //     const bottomThreshold = scrollHeight - clientHeight - 30;
+  //     const topThreshold = 30;
 
-      // Set a timeout to check for page navigation after scroll stops
-      scrollTimeout.current = setTimeout(() => {
-        // Navigate to next page when scrolled to bottom
-        if (scrollTop >= bottomThreshold && currentPage < numPages) {
-          setCurrentPage((prev) => prev + 1);
-        } else if (scrollTop <= topThreshold && currentPage > 1) {
-          setCurrentPage((prev) => prev - 1);
-        }
-      }, 200);
+  //     // Set a timeout to check for page navigation after scroll stops
+  //     scrollTimeout.current = setTimeout(() => {
+  //       // Navigate to next page when scrolled to bottom
+  //       if (scrollTop >= bottomThreshold && currentPage < numPages) {
+  //         setCurrentPage((prev) => prev + 1);
+  //       } else if (scrollTop <= topThreshold && currentPage > 1) {
+  //         setCurrentPage((prev) => prev - 1);
+  //       }
+  //     }, 200);
 
-      lastScrollTop.current = scrollTop;
-    },
-    [currentPage, numPages]
-  );
+  //     lastScrollTop.current = scrollTop;
+  //   },
+  //   [currentPage, numPages]
+  // );
 
   // Add scroll event listener
-  useEffect(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  // useEffect(() => {
+  //   const container = scrollContainerRef.current;
+  //   if (!container) return;
 
-    container.addEventListener("scroll", handleScroll, { passive: true });
+  //   container.addEventListener("scroll", handleScroll, { passive: true });
 
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      if (scrollTimeout.current) {
-        clearTimeout(scrollTimeout.current);
-      }
-    };
-  }, [handleScroll]);
+  //   return () => {
+  //     container.removeEventListener("scroll", handleScroll);
+  //     if (scrollTimeout.current) {
+  //       clearTimeout(scrollTimeout.current);
+  //     }
+  //   };
+  // }, [handleScroll]);
 
   // Reset scroll position when page changes
-  useEffect(() => {
-    if (scrollContainerRef.current) {
-      const container = scrollContainerRef.current
-      // Set scroll to middle to avoid immediate re-triggering
-      setTimeout(() => {
-        if (container.scrollHeight > container.clientHeight) {
-          container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2)
-        }
-      }, 100)
-    }
-  }, [currentPage ]);
+  // useEffect(() => {
+  //   if (scrollContainerRef.current) {
+  //     const container = scrollContainerRef.current;
+  //     // Set scroll to middle to avoid immediate re-triggering
+  //     setTimeout(() => {
+  //       if (container.scrollHeight > container.clientHeight) {
+  //         container.scrollTop = Math.max(0, (container.scrollHeight - container.clientHeight) / 2);
+  //       }
+  //     }, 100);
+  //   }
+  // }, [currentPage]);
 
   function highlightPattern(text: string, pattern: string) {
     if (!pattern || pattern.length === 0) return text;
@@ -166,7 +168,7 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex justify-between items-center p-3 border-b bg-white z-10">
+      <div className="flex justify-between items-center p-3 border-b bg-blue-400 z-10">
         <div className="flex items-center gap-3">
           {bankName && <BankLogo bankName={bankName} size="sm" />}
           <div className="flex items-center gap-2">
@@ -232,21 +234,23 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
         </div>
       </div>
 
-      <div className="px-3 py-1 bg-slate-50 border-b text-xs text-slate-500 text-center">
+      {/* <div className="px-3 py-1 bg-slate-50 border-b text-xs text-slate-500 text-center">
         Scroll to navigate between pages • Use buttons for precise control
-      </div>
+      </div> */}
 
-      <div
-        ref={scrollContainerRef}
-        className="flex-1 overflow-auto flex justify-center p-4 bg-slate-100 scroll-smooth pdf-scroll-container"
-      >
+      {/* <div */}
+        {/* ref={scrollContainerRef} */}
+        {/* // className="bg-red-600 h-full" */}
+        {/* // className="flex-1 overflow-auto flex justify-center p-4 bg-slate-100 scroll-smooth" */}
+      {/* > */}
         {isLoading && (
           <div className="flex items-center justify-center w-full h-full">
             <Skeleton className="h-[80%] w-[60%]" />
           </div>
         )}
-        <div ref={pageRef} className="relative">
+        {/* <div ref={pageRef}> */}
           <Document
+          className={"h-full"}
             file={documentUrl}
             onLoadSuccess={onDocumentLoadSuccess}
             loading={
@@ -264,21 +268,53 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
               alert(JSON.stringify(e));
             }}
           >
-            <Page
-              pageNumber={currentPage}
-              scale={scale}
-              rotate={rotation}
-              renderTextLayer={true}
-              renderAnnotationLayer={true}
-              className="shadow-lg transition-opacity duration-300"
-              customTextRenderer={textRenderer}
-            />
+            <div className="bg-red-700 h-full items-center flex-1">
+            {numPages && (
+              <>
+              <AutoSizer>
+                {({ width, height }) => (
+                  <FixedSizeList
+                    height={height}
+                    itemCount={numPages || 0}
+                    itemSize={height}
+                    width={width}
+                  >
+                    {({ index, style }) => (
+                      <div style={style}>
+                        <Page
+                          pageIndex={index}
+                          scale={scale}
+                          rotate={rotation}
+                          renderTextLayer={true}
+                          renderAnnotationLayer={true}
+                          className="shadow-lg transition-opacity duration-300 mb-4"
+                          customTextRenderer={textRenderer}
+                        />
+                      </div>
+                    )}
+                  </FixedSizeList>
+                )}
+              </AutoSizer>
+              </>
+            )}
+            </div>
+            {/* Array.from({ length: numPages }, (_, i) => (
+                <Page
+                  pageIndex={i}
+                  scale={scale}
+                  rotate={rotation}
+                  renderTextLayer={true}
+                  renderAnnotationLayer={true}
+                  className="shadow-lg transition-opacity duration-300 mb-4"
+                  customTextRenderer={textRenderer}
+                />
+              ))} */}
           </Document>
-        </div>
-      </div>
+        {/* </div> */}
+      {/* </div> */}
 
       {/* Navigation hints with scroll indicator */}
-      <div className="px-3 py-2 bg-white border-t text-xs text-slate-400">
+      {/* <div className="px-3 py-2 bg-white border-t text-xs text-slate-400">
         <div className="flex justify-between items-center mb-2">
           <span>Scroll to navigate • Zoom: {Math.round(scale * 100)}%</span>
           {numPages && (
@@ -288,7 +324,7 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
           )}
         </div>
         {numPages && <ScrollIndicator currentPage={currentPage} totalPages={numPages} />}
-      </div>
+      </div> */}
     </div>
   );
 }
