@@ -4,7 +4,7 @@ from pydantic import HttpUrl
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from ground_truths import BankRootUrls
+from domain_model import BankRootUrls
 from tqdm import tqdm
 import datetime
 from pathlib import Path
@@ -83,7 +83,7 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
         
         # Load existing DocumentAnalysis if available
         try:
-            doc_analysis = load_document_analysis(dest_path)
+            doc_analysis = load_document_analysis(dest_path, bank=bank_name)
         except FileNotFoundError:
             doc_analysis = None
         if doc_analysis is not None:
@@ -99,6 +99,7 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
                     file_path=dest_path,
                     retrieved_from=pdf_url,
                     retrieved_at=datetime.datetime.now(datetime.timezone.utc),
+                    bank=bank_name,
                     retrieved_etag=new_etag,
                 )
             # Create or update DocumentAnalysis

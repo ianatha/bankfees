@@ -1,23 +1,9 @@
 import datetime
-from enum import Enum
 from hashlib import md5
-from typing import Optional
 from pydantic import BaseModel, Field, HttpUrl, ValidationError
+from domain_model import DocumentCategory
 from utils import extract_pages_text
 from pathlib import Path
-
-
-class DocumentCategory(str, Enum):
-  CustomerGuide = "CustomerGuide"
-  DeltioPliroforisisPeriTelon = "DeltioPliroforisisPeriTelon"
-  Disclosure = "Disclosure"
-  GeneralTermsContract = "GeneralTermsContract"
-  InterestRates = "InterestRates"
-  # NeedsOCR = "NeedsOCR"
-  PaymentFees = "PaymentFees"
-  PriceList = "PriceList"
-  PriceListExclusive = "PriceListExclusive"
-  Uncategorized = "Uncategorized"
 
 
 class DocumentAnalysis(BaseModel):
@@ -29,6 +15,9 @@ class DocumentAnalysis(BaseModel):
   )
   retrieved_etag: str | None = Field(
       default=None, description="ETag of the document at the time of retrieval"
+  )
+  bank: str = Field(
+      ..., description="name of the bank from which the document was retrieved"
   )
   relative_file_path: Path = Field(
       ..., description="relative path to the source file from the project directory"
@@ -76,6 +65,7 @@ class DocumentAnalysis(BaseModel):
 def new_document_analysis(file_path: Path,
                           retrieved_from: HttpUrl,
                           retrieved_at: datetime.datetime,
+                          bank: str,
                           retrieved_etag: str | None = None
                           ) -> DocumentAnalysis:
   """
@@ -88,12 +78,14 @@ def new_document_analysis(file_path: Path,
       relative_file_path=file_path,
       retrieved_from=HttpUrl(retrieved_from),
       retrieved_at=retrieved_at,
+      bank=bank,
       content_hash=content_hash,
+      retrieved_etag=retrieved_etag,
       category=DocumentCategory.Uncategorized
   )
 
 
-def load_document_analysis(file_path: Path) -> DocumentAnalysis:
+def load_document_analysis(file_path: Path, bank: str | None = None) -> DocumentAnalysis:
   """
   Load document analysis results from a JSON file.
   """
@@ -101,14 +93,26 @@ def load_document_analysis(file_path: Path) -> DocumentAnalysis:
     raise FileNotFoundError(f"File {file_path} does not exist.")
   analysis_file = file_path.with_suffix(".analysis.json")
   if not analysis_file.is_file():
-    return new_document_analysis(file_path)
+    if bank is None:
+      raise ValueError(f"No analysis file found for {file_path} and no bank specified")
+    return new_document_analysis(file_path, retrieved_from=HttpUrl("file://unknown"), 
+                                retrieved_at=datetime.datetime.now(datetime.timezone.utc), 
+                                bank=bank)
   with analysis_file.open('r', encoding='utf-8') as f:
     try:
       result = DocumentAnalysis.model_validate_json(f.read())
       # validate content hash
       content_hash = md5(file_path.read_bytes()).hexdigest()
       if result.content_hash != content_hash:
-        return new_document_analysis(file_path)
+        if bank is None:
+          raise ValueError(f"Content hash mismatch for {file_path} and no bank specified for recreation")
+        return new_document_analysis(file_path, retrieved_from=HttpUrl("file://unknown"), 
+                                    retrieved_at=datetime.datetime.now(datetime.timezone.utc), 
+                                    bank=bank)
       return result
-    except ValidationError as e:
-      return None
+    except ValidationError:
+      if bank is None:
+        raise ValueError(f"Invalid analysis file for {file_path} and no bank specified")
+      return new_document_analysis(file_path, retrieved_from=HttpUrl("file://unknown"), 
+                                  retrieved_at=datetime.datetime.now(datetime.timezone.utc), 
+                                  bank=bank)

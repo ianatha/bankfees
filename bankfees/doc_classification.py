@@ -1,28 +1,16 @@
 #!/usr/bin/env python3
 import concurrent.futures
 import datetime
-from typing import Optional
 
 from pydantic import BaseModel, Field
 from doc_analysis import DocumentCategory, load_document_analysis
 from tqdm import tqdm
 from pathlib import Path
 from gemini import create_gemini, generate_content
+from domain_model import Categories
 
 root_dir = Path.cwd() / "data_new"
 
-categories = {
-    "CustomerGuide": "Οδηγίες για την διευκόλυνση των πελατών της τράπεζας κατά τη διενέργεια ραντεβού ή συνναλαγών",
-    "DeltioPliroforisisPeriTelon": "Έγγραφα με τίτλο \"Δελτίο Πληροφόρησης περί Τελών\"",
-    "Disclosure": "Έγγραφα ενημέρωσης πελάτη για υποχρεώσεις, κινδύνους και διαφάνεια όρων (αποποιήσεις ευθυνών, γνωστοποιήσεις), εκτός από Δελτία Πληροφόρησης περί Τελών",
-    "GeneralTermsContract": "Γενικοί όροι σύμβασης και συναλλαγών μεταξύ πελάτη και τράπεζας",
-    "InterestRates": "Έγγραφα που περιέχουν πληροφορίες για επιτόκια καταθέσεων, δανείων και άλλων τραπεζικών προϊόντων",
-    # "NeedsOCR": "Έγγραφα με ελάχιστους ή καθόλου αναγνώσιμους χαρακτήρες, που απαιτούν OCR για εξαγωγή κειμένου",
-    "PaymentFees": "Πίνακες τελών και προμηθειών για πληρωμές, μεταφορές και υπηρεσίες σε συγκεκριμένους παραλήπτες",
-    "PriceList": "Γενικός τιμοκατάλογος τραπεζικών προϊόντων και υπηρεσιών με βασικές χρεώσεις και επιτόκια",
-    "PriceListExclusive": "Ειδικός τιμοκατάλογος για premium προϊόντα/υπηρεσίες (π.χ. private banking, gold accounts)",
-    # "Unknown": "Έγγραφο μη κατηγοριοποιημένο ή αδιευκρίνιστης κατηγορίας",
-}
 
 PAGES_CONTEXT_LIMIT = 12
 
@@ -73,7 +61,7 @@ def process_pdf(gemini, pdf_file):
     print(f"Warning: No text extracted from {pdf_file.name}. Skipping...")
     return None
 
-  prompt = classification_prompt(categories, pdf_file.name, pages_text)
+  prompt = classification_prompt(Categories, pdf_file.name, pages_text)
   llm_classification: DocumentLLMClassification = generate_content(
       gemini, prompt, response_schema=DocumentLLMClassification)
   doc_analysis.category = llm_classification.category

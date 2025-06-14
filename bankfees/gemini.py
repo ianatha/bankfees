@@ -3,9 +3,8 @@ import sys
 from typing import Optional
 from google import genai
 from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, SchemaUnion, ThinkingConfig
-import json
 
-MODEL_NAME = "gemini-2.5-pro-preview-06-05"
+MODEL_NAME = "gemini-2.5-flash-preview-05-20"
 
 GOOGLE_SEARCH_TOOL = Tool(
     google_search=GoogleSearch()

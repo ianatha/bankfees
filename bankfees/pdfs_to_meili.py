@@ -13,7 +13,7 @@ from meilisearch import Client, errors as meilisearch_errors
 from meilisearch.models.task import TaskInfo
 
 from tqdm.auto import tqdm
-from ground_schemata import BankDocument
+from domain_model import BankDocument
 from utils import extract_pages_text
 
 def wait_for_task(meili: Client, task: TaskInfo, desc: str = "", verbose: bool = True) -> TaskInfo:
