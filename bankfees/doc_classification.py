@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import concurrent.futures
-from enum import Enum
+import datetime
+from typing import Optional
+
 from pydantic import BaseModel, Field
-import json
-from utils import extract_pages_text
+from doc_analysis import DocumentCategory, load_document_analysis
 from tqdm import tqdm
 from pathlib import Path
 from gemini import create_gemini, generate_content
@@ -24,22 +25,15 @@ categories = {
 }
 
 
-class DocumentCategory(str, Enum):
-  CustomerGuide = "CustomerGuide"
-  DeltioPliroforisisPeriTelon = "DeltioPliroforisisPeriTelon"
-  Disclosure = "Disclosure"
-  GeneralTermsContract = "GeneralTermsContract"
-  InterestRates = "InterestRates"
-  # NeedsOCR = "NeedsOCR"
-  PaymentFees = "PaymentFees"
-  PriceList = "PriceList"
-  PriceListExclusive = "PriceListExclusive"
-  # Unknown = "Unknown"
-
-
-class DocumentClassification(BaseModel):
+class DocumentLLMClassification(BaseModel):
   category: DocumentCategory = Field(
       ..., description="document category"
+  )
+  effective_date: datetime.date | None = Field(
+      ..., description="date when the document becomes effective"
+  )
+  document_title: str | None = Field(
+      description="title of the document, if available"
   )
 
 
@@ -55,7 +49,10 @@ def classification_prompt(categories: dict[str, str], file_name: str, page_texts
   for category, description in categories.items():
     prompt += f"<Category><Identifier>{category}</Identifier><Description>{description}</Description></Category>\n"
   prompt += "</ClassificationCategories>\n\n"
-  prompt += "The text is divided into pages. The document should be classified in its entirety. In case the document doesn't contain enough information, you should also consult the filename to make a determination. You must respond with one of the Category Identifiers and nothing else.\n\n"
+  prompt += "The text is divided into pages. The document should be classified in its entirety. In case the document doesn't contain enough information, you should also consult the filename to make a determination.\n"
+  prompt += "If the document contains an effective date, it should be included in your response as the effective_date field. If there isn't one, omit that field.\n"
+  prompt += "If you can discern a clear title for the document, it should be included in your response as the document_title field. If there isn't one, omit that field.\n"
+  prompt += "\n"
   prompt += "The document is as follows:\n"
   prompt += "<Document>\n"
   prompt += "<FileName>" + file_name + "</FileName>\n"
@@ -65,42 +62,47 @@ def classification_prompt(categories: dict[str, str], file_name: str, page_texts
   return prompt
 
 
-def process_pdf(pdf_file):
+def process_pdf(gemini, pdf_file):
   if not pdf_file.is_file() or pdf_file.name.startswith("_"):
     return None
 
-  pages_text = extract_pages_text(pdf_file, indent_level=2, limit=5)
+  doc_analysis = load_document_analysis(pdf_file)
+  pages_text = doc_analysis.get_pages_as_text(indent_level=1)[:5]
   if not pages_text:
     print(f"Warning: No text extracted from {pdf_file.name}. Skipping...")
     return None
 
   prompt = classification_prompt(categories, pdf_file.name, pages_text)
-  category = generate_content(
-      gemini, prompt, response_schema=DocumentClassification).category
-  bank_name = pdf_file.parent.name
-  fname = bank_name + "/" + pdf_file.name
-  return (fname, category)
+  llm_classification: DocumentLLMClassification = generate_content(
+      gemini, prompt, response_schema=DocumentLLMClassification)
+  doc_analysis.category = llm_classification.category
+  if llm_classification.effective_date:
+    doc_analysis.effective_date = llm_classification.effective_date
+  if llm_classification.document_title:
+    doc_analysis.document_title = llm_classification.document_title
+  doc_analysis.save()
+  return (f"{pdf_file.parent.name}/{pdf_file.name}", llm_classification.category)
 
 
-file_categories = {}
-gemini = create_gemini()
-pdf_files = list(root_dir.glob("**/*.pdf"))
-with concurrent.futures.ThreadPoolExecutor() as executor:
-  results = list(
-      tqdm(executor.map(process_pdf, pdf_files), total=len(pdf_files)))
+def main():
+  gemini = create_gemini()
+  pdf_files = list(root_dir.glob("**/*.pdf"))
+  with concurrent.futures.ThreadPoolExecutor() as executor:
+    results = list(
+        tqdm(executor.map(lambda pdf_file: process_pdf(gemini, pdf_file), pdf_files), total=len(pdf_files)))
 
-for result in results:
-  if result:
-    fname, category = result
-    file_categories[fname] = category
+  # convert list of tuples in results to a dictionary
+  file_categories = {}
+  for result in results:
+    if result:
+      fname, category = result
+      file_categories[fname] = category
 
-print()
-print("Classification results:")
-for file_path, category in file_categories.items():
-  print(f"{file_path}: {category}")
+  print()
+  print("Classification Results:")
+  for file_path, category in file_categories.items():
+    print(f"{file_path}: {category}")
 
-# write results to JSON file
-output_file = root_dir / "document_classification_results.json"
-with open(output_file, "w", encoding="utf-8") as f:
-  json.dump(file_categories, f, ensure_ascii=False, indent=2)
-print(f"\nClassification results saved to {output_file}")
+
+if __name__ == "__main__":
+  main()
