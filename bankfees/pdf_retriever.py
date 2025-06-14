@@ -1,189 +1,111 @@
 #!/usr/bin/env python3
 
-# # gemini_bank_url_retriever.py
-# Python tool to retrieve URLs for specific bank rate documents using Google’s Gemini AI with Google Search grounding
-
 import os
-import sys
-import re
-import asyncio
-import aiohttp
-from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
-from pydantic import BaseModel
-import json
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urljoin, urlparse
+from enum import Enum
+from typing import Dict, List
+from pydantic import RootModel, HttpUrl
+from tqdm import tqdm
 
-# https://www.alpha.gr/el/idiotes/support-center/isxuon-timologio-kai-oroi-sunallagon
 
-# https://www.piraeusbank.gr/el/support/epitokia-deltia-timwn
-# https://www.piraeusbank.gr/-/jssmedia/Project/Piraeus/PiraeusBank/shared/Files/PiraeusBank/support/epitokia-deltia-timwn/price-02062025.pdf
+class Bank(str, Enum):
+  ALPHA = "alpha"
+  ATTICA = "attica"
+  NBG = "nbg"
+  EUROBANK = "eurobank"
+  PIRAEUS = "piraeus"
 
-class BankFeesDocument(BaseModel):
-    document_name: str
-    url: str
-    description: str
 
-# List of banks and their primary domains
-BANKS = {
-    "Alpha Bank": "alpha.gr",
-    # "Τράπεζα Πειραιώς": "piraeusbank.gr",
-    # "NBG": "nbg.gr",
-    # "Eurobank Εργασίας": "eurobank.gr",
-    # "Attica Bank": "atticabank.gr",
-}
+BanksDocRoot = RootModel[Dict[Bank, List[HttpUrl]]]
 
-# Gemini model and plugin configuration
-MODEL_NAME = "gemini-2.5-pro-preview-06-05"
-GOOGLE_SEARCH_TOOL = Tool(
-    google_search = GoogleSearch()
+bank_root_urls = BanksDocRoot.model_validate(
+    {
+        Bank.ALPHA: [
+            "https://www.alpha.gr/el/idiotes/support-center/isxuon-timologio-kai-oroi-sunallagon"
+        ],
+        Bank.PIRAEUS: ["https://www.piraeusbank.gr/el/support/epitokia-deltia-timwn"],
+        Bank.NBG: [
+            "https://www.nbg.gr/el/footer/timologia-ergasiwn",
+        ],
+        Bank.EUROBANK: [
+            "https://www.eurobank.gr/el/timologia",
+        ],
+    }
 )
 
-def configure_genai():
-    """
-    Configure the Google Generative AI (Gemini) client.
-    Expects the API key in the environment variable GEMINI_API_KEY.
-    """
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        print("Error: Please set the GEMINI_API_KEY environment variable.", file=sys.stderr)
-        sys.exit(1)
-    client = genai.Client(api_key=api_key)
-    return client
-
-async def _resolve_url(session: aiohttp.ClientSession, url: str) -> str:
-    """
-    Resolve a single redirect URL to its final destination.
-    """
-    print(f"Resolving URL: {url}")
-    try:
-        # Use GET to follow redirects and obtain final URL
-        async with session.get(url, allow_redirects=True, timeout=10) as resp:
-            return str(resp.url)
-    except Exception:
-        return url
-
-def resolve_redirects(urls: list[str]) -> list[str]:
-    """
-    Resolve a list of redirect URLs in parallel and return the final URLs.
-    """
-    async def _resolve_all():
-        async with aiohttp.ClientSession() as session:
-            tasks = [_resolve_url(session, u) for u in urls]
-            return await asyncio.gather(*tasks)
-    try:
-        return list(dict.fromkeys(asyncio.run(_resolve_all())))  # preserve order, dedupe
-    except Exception as e:
-        print(f"Warning: Redirect resolution failed: {e}", file=sys.stderr)
-        return urls
-
-# Present the results as a JSON array where each object represents a found relevant document and conforms to the following structure:
-
-# <JsonItemFormat>
-# {{
-#   "document_name": "string",
-#   "url": "string",
-#   "description": "string"
-# }}
-# </JsonItemFormat>
-
-# For the document_name, use the title of the document or the relevant part of the URL/search result snippet.
-# For the url, provide the direct link to the PDF document.
-# If no relevant PDF documents are found for the specified bank and domain, return an empty JSON array [].
-# Respond only with the JSON array. Do not include any introductory text, explanations, or conversational filler.
-
-def gemini_prompt(bank_name: str, bank_domain: str) -> str:
-    return f"""
-For the following Greek bank, give me a JSON array with all documents they have available on their website that list their pricing policies.
-Relevant search terms are 'όροι τιμολόγησης', 'τιμοκατάλογος', 'χρεώσεις', 'Δελτίο Πληροφόρησης περί τελών', or similar keywords related to banking service fees.
-
-Bank Name: "{bank_name}"
-Bank Domain: "{bank_domain}"
-"""
-
-def search_grounded_urls(client: genai.Client, bank_name: str, bank_domain: str) -> list[str]:
-    """
-    Use Gemini with the Google Search plugin to retrieve URLs matching the query.
-    Filters results to URLs containing the specified domain_filter.
-
-    Args:
-        query: The search query string.
-        domain_filter: A substring that must be present in returned URLs.
-
-    Returns:
-        A list of unique URLs matching the domain filter.
-    """
-    prompt = gemini_prompt(bank_name, bank_domain)
-    print("Using prompt:")
-    print(prompt)
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=prompt,
-        config=GenerateContentConfig(
-            tools=[GOOGLE_SEARCH_TOOL],
-            response_modalities=["TEXT"],
-            # response_mime_type="application/json",
-            # response_schema=list[BankFeesDocument],
-        ),
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/91.0.4472.124 Safari/537.36"
     )
-
-    # Extract URLs from the response using Gemini's candidate content and grounding metadata
-    urls = set()
-    candidate = response.candidates[0] if response.candidates else None
-    if candidate and hasattr(candidate, "grounding_metadata"):
-        print("candidate")
-        print(json.dumps(candidate.to_json_dict(), indent=2, ensure_ascii=False))
-        print()
-        print()
-        print(candidate.content.parts[0].text)
-        print()
-        print()
-        print(candidate.grounding_metadata)
-        print()
-        print()
-        for chunk in candidate.grounding_metadata.grounding_chunks:
-            if chunk.web and chunk.web.uri:
-                urls.add(chunk.web.uri)
-    return list(urls)
+}
 
 
-def retrieve_all_urls(client: genai.Client) -> dict[str, list[str]]:
-    """
-    Retrieve and resolve document URLs for all banks and document types.
+def download_file(url: str, dest_path: str, chunk_size: int = 8192):
+  """
+  Streams a file from the given URL to the specified filesystem path.
+  """
+  with requests.get(url, headers=HEADERS, stream=True, timeout=15) as response:
+    response.raise_for_status()
+    with open(dest_path, "wb") as f:
+      total = int(response.headers.get("content-length", 0))
+      with tqdm(
+          total=total,
+          unit="B",
+          unit_scale=True,
+          desc=os.path.basename(dest_path),
+          leave=False,
+      ) as pbar:
+        for chunk in response.iter_content(chunk_size=chunk_size):
+          if chunk:
+            f.write(chunk)
+            pbar.update(len(chunk))
 
-    Returns:
-        Dictionary mapping bank names to lists of resolved URLs.
-    """
-    all_urls = {}
-    for bank_name, bank_domain in BANKS.items():
-        raw_urls = []
-        # for term in DOCUMENT_TERMS:
-        print(f"Searching: '{bank_name}' in '{bank_domain}'...")
-        try:
-            urls = search_grounded_urls(client, bank_name, bank_domain)
-            raw_urls.extend(urls)
-        except Exception as e:
-            print(e)
-            print(f"Warning: search for '{bank_name}' failed: {e}", file=sys.stderr)
-        # Resolve any redirector URLs in parallel
-        resolved = resolve_redirects(raw_urls)
-        all_urls[bank_name] = sorted(set(resolved))
-    return all_urls
+
+def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
+  """
+  Scrapes all PDF links from the given page URL and downloads them into
+  data_new/{bank_name}/
+  """
+  # Create target directory
+  target_dir = os.path.join(base_folder, bank_name)
+  os.makedirs(target_dir, exist_ok=True)
+
+  # Fetch page content
+  resp = requests.get(page_url, headers=HEADERS, timeout=15)
+  resp.raise_for_status()
+
+  # Parse HTML for PDF links
+  soup = BeautifulSoup(resp.text, "html.parser")
+  pdf_links = set()
+  for a in soup.find_all("a", href=True):
+    href = a["href"].strip()
+    if href.lower().endswith(".pdf"):
+      full_url = urljoin(page_url, href)
+      pdf_links.add(full_url)
+
+  # Download each PDF
+  for pdf_url in tqdm(
+      sorted(pdf_links), desc=f"{bank_name} PDFs", unit="file", leave=False
+  ):
+    filename = os.path.basename(urlparse(pdf_url).path)
+    dest_path = os.path.join(target_dir, filename)
+    if os.path.exists(dest_path):
+      os.remove(dest_path)
+
+    try:
+      download_file(pdf_url, dest_path)
+    except Exception as e:
+      print(f"[ERROR] Failed to download {pdf_url}: {e}")
 
 
 def main():
-    """
-    Command-line entry point. Prints gathered URLs to stdout.
-    """
-    client = configure_genai()
-    results = retrieve_all_urls(client)
+  for bank_name, url in tqdm(bank_root_urls.root.items(), desc="Banks", unit="bank"):
+    download_pdfs(bank_name.value, url.encoded_string())
 
-    for bank, urls in results.items():
-        print(f"\n{bank}:")
-        if urls:
-            for url in urls:
-                print(f" - {url}")
-        else:
-            print(" (No URLs found.)")
 
 if __name__ == "__main__":
-    main()
+  main()
