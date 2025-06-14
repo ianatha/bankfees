@@ -19,12 +19,14 @@ export function parseSearchInput(input: string): ParsedSearch {
   let query = input
   const filters: string[] = []
 
-  const bankRegex = /bank:("[^"]+"|\S+)/i
-  const match = input.match(bankRegex)
-  if (match) {
-    const value = match[1].replace(/^"|"$/g, "")
-    filters.push(`bank = "${value}"`)
-    query = query.replace(match[0], "").trim()
+  const bankRegex = /bank:("[^"]+"|\S+)/gi
+  const bankMatches = [...input.matchAll(bankRegex)]
+
+  if (bankMatches.length > 0) {
+    const banks = bankMatches.map((m) => m[1].replace(/^"|"$/g, ""))
+    const filter = banks.map((b) => `bank = "${b}"`).join(" OR ")
+    filters.push(filter)
+    query = query.replace(bankRegex, "").replace(/\s+/g, " ")
   }
 
   return { query: query.trim(), filters }
