@@ -1,4 +1,4 @@
-# Bank Fees Analysis Tool
+# Listobank
 
 A comprehensive tool for analyzing and comparing bank fees across major Greek banks (Alpha Bank, Attica Bank, Eurobank, NBG, Piraeus Bank). The system automatically retrieves pricing documents, classifies them using LLM analysis, and provides a searchable interface through a Next.js web application.
 
