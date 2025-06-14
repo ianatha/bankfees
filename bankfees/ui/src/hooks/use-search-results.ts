@@ -1,6 +1,7 @@
 "use client";
 
 import { searchMeiliSearch } from "@/lib/meilisearch";
+import { parseSearchInput } from "@/lib/utils";
 import { useState } from "react";
 
 interface SearchResult {
@@ -23,18 +24,20 @@ export function useSearchResults() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const performSearch = async (query: string) => {
+  const performSearch = async (input: string) => {
     setIsLoading(true);
     setError(null);
 
-    if (query.trim() === "") {
+    const { query, filters } = parseSearchInput(input);
+
+    if (query.trim() === "" && filters.length === 0) {
       setResults([]);
       setIsLoading(false);
       return;
     }
 
     try {
-      const searchResults = await searchMeiliSearch(query);
+      const searchResults = await searchMeiliSearch(query, filters);
 
       // Group results by bank
       const groupedByBank: Record<string, SearchResult[]> = {};

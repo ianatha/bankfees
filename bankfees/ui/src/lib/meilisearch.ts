@@ -33,7 +33,10 @@ interface Document {
 
 const CONTEXT_LENGTH = 200;
 
-export async function searchMeiliSearch(query: string): Promise<SearchHit[]> {
+export async function searchMeiliSearch(
+  query: string,
+  filters: string[] = []
+): Promise<SearchHit[]> {
   try {
     const searchResults = await index.search(query, {
       limit: 100,
@@ -43,6 +46,7 @@ export async function searchMeiliSearch(query: string): Promise<SearchHit[]> {
       attributesToCrop: ["content"],
       cropLength: 150,
       cropMarker: "...",
+      filter: filters.length > 0 ? filters.join(" AND ") : undefined,
     });
 
     // Process the results to extract highlights and other information
