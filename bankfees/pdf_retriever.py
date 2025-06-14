@@ -1,39 +1,10 @@
 #!/usr/bin/env python3
-
 import os
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from enum import Enum
-from typing import Dict, List
-from pydantic import RootModel, HttpUrl
+from ground_truths import BankRootUrls
 from tqdm import tqdm
-
-
-class Bank(str, Enum):
-  ALPHA = "alpha"
-  ATTICA = "attica"
-  NBG = "nbg"
-  EUROBANK = "eurobank"
-  PIRAEUS = "piraeus"
-
-
-BanksDocRoot = RootModel[Dict[Bank, List[HttpUrl]]]
-
-bank_root_urls = BanksDocRoot.model_validate(
-    {
-        Bank.ALPHA: [
-            "https://www.alpha.gr/el/idiotes/support-center/isxuon-timologio-kai-oroi-sunallagon"
-        ],
-        Bank.PIRAEUS: ["https://www.piraeusbank.gr/el/support/epitokia-deltia-timwn"],
-        Bank.NBG: [
-            "https://www.nbg.gr/el/footer/timologia-ergasiwn",
-        ],
-        Bank.EUROBANK: [
-            "https://www.eurobank.gr/el/timologia",
-        ],
-    }
-)
 
 HEADERS = {
     "User-Agent": (
@@ -103,7 +74,7 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
 
 
 def main():
-  for bank_name, url in tqdm(bank_root_urls.root.items(), desc="Banks", unit="bank"):
+  for bank_name, url in tqdm(BankRootUrls.root.items(), desc="Banks", unit="bank"):
     download_pdfs(bank_name.value, url.encoded_string())
 
 
