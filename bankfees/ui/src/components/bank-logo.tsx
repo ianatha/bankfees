@@ -23,7 +23,7 @@ export const BankLogo: FC<BankLogoProps> = ({ bankName, size = "md", className =
   const logoUrl = getBankLogoUrl(normalizedBankName)
 
   return (
-    <div className={`flex items-center justify-center bg-white rounded-md p-1 ${className}`}>
+    <div className={`flex items-center justify-center bg-white rounded-md m-0.5 ${className}`}>
       <Image
         src={logoUrl || "/placeholder.svg"}
         alt={`${bankName} logo`}

@@ -53,7 +53,15 @@ export function SearchInterface() {
               type="search"
               placeholder="Search for fees (e.g., overdraft, wire transfer, ATM)"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                const newSearchQuery = e.target.value.trim();
+                if (newSearchQuery.length === 0) {
+                  performSearch(""); // Clear results on empty input
+                } else if (newSearchQuery.length >= 2) {
+                  performSearch(newSearchQuery); // Perform search on input change
+                }
+              }}
               className="pl-10"
             />
           </div>
@@ -61,7 +69,7 @@ export function SearchInterface() {
         </form>
 
         <div className="bg-white rounded-lg shadow-sm border p-4">
-          {isLoading ? (
+          {isLoading && results.length === 0 ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-800"></div>
             </div>
@@ -69,6 +77,7 @@ export function SearchInterface() {
             <div className="text-red-500 p-4 text-center">{error}</div>
           ) : (
             <SearchResults
+              updating={isLoading}
               results={results}
               onResultClick={setSelectedResult}
               searchQuery={searchQuery}

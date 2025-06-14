@@ -155,7 +155,7 @@ export function PdfViewer({ documentUrl, pageNumber, searchTerm, bankName }: Pdf
   function highlightPattern(text: string, pattern: string) {
     if (!pattern || pattern.length === 0) return text;
     return text.replace(pattern, (match) => {
-      return `<mark class="search-highlight bg-yellow-300/40 text-transparent px-1 rounded">${match}</mark>`;
+      return `<mark class="bg-yellow-300/80 text-transparent px-1 rounded">${match}</mark>`;
     });
   }
 

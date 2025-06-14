@@ -1,55 +1,55 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { FileText, ChevronDown, ChevronRight, ExternalLink } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
-import { Badge } from "@/components/ui/badge"
-import { getAllDocuments } from "@/lib/meilisearch"
-import Link from "next/link"
-import { BankLogo } from "@/components/bank-logo"
+import { BankLogo } from "@/components/bank-logo";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import { getAllDocuments } from "@/lib/meilisearch";
+import { ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState } from "react";
 
 interface Document {
-  id: string
-  bank: string
-  filename: string
-  path: string
-  page?: number
+  id: string;
+  bank: string;
+  filename: string;
+  path: string;
+  page?: number;
 }
 
 interface BankDocuments {
-  bankName: string
-  documents: Document[]
+  bankName: string;
+  documents: Document[];
 }
 
 export function PdfLibrary() {
-  const [documents, setDocuments] = useState<BankDocuments[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [openBanks, setOpenBanks] = useState<string[]>([])
+  const [documents, setDocuments] = useState<BankDocuments[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [openBanks, setOpenBanks] = useState<string[]>([]);
 
   useEffect(() => {
     async function fetchDocuments() {
       try {
-        const docs = await getAllDocuments()
+        const docs = await getAllDocuments();
 
         // Group documents by bank
-        const groupedByBank: Record<string, Document[]> = {}
+        const groupedByBank: Record<string, Document[]> = {};
 
         docs.forEach((doc) => {
           if (!groupedByBank[doc.bank]) {
-            groupedByBank[doc.bank] = []
+            groupedByBank[doc.bank] = [];
           }
 
           // Check if document already exists in the array (by path)
-          const existingDoc = groupedByBank[doc.bank].find((d) => d.path === doc.path)
+          const existingDoc = groupedByBank[doc.bank].find((d) => d.path === doc.path);
           if (!existingDoc) {
-            groupedByBank[doc.bank].push(doc)
+            groupedByBank[doc.bank].push(doc);
           }
-        })
+        });
 
         // Convert to array format and sort banks alphabetically
         const bankDocuments: BankDocuments[] = Object.keys(groupedByBank)
@@ -57,23 +57,25 @@ export function PdfLibrary() {
           .map((bankName) => ({
             bankName,
             documents: groupedByBank[bankName].sort((a, b) => a.filename.localeCompare(b.filename)),
-          }))
+          }));
 
-        setDocuments(bankDocuments)
+        setDocuments(bankDocuments);
       } catch (err) {
-        console.error("Error fetching documents:", err)
-        setError("Failed to load documents. Please try again later.")
+        console.error("Error fetching documents:", err);
+        setError("Failed to load documents. Please try again later.");
       } finally {
-        setIsLoading(false)
+        setIsLoading(false);
       }
     }
 
-    fetchDocuments()
-  }, [])
+    fetchDocuments();
+  }, []);
 
   const toggleBank = (bankName: string) => {
-    setOpenBanks((prev) => (prev.includes(bankName) ? prev.filter((name) => name !== bankName) : [...prev, bankName]))
-  }
+    setOpenBanks((prev) =>
+      prev.includes(bankName) ? prev.filter((name) => name !== bankName) : [...prev, bankName]
+    );
+  };
 
   if (isLoading) {
     return (
@@ -88,29 +90,38 @@ export function PdfLibrary() {
           </Card>
         ))}
       </div>
-    )
+    );
   }
 
   if (error) {
-    return <div className="text-red-500 p-4 text-center">{error}</div>
+    return <div className="text-red-500 p-4 text-center">{error}</div>;
   }
 
   return (
     <div>
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold">Banks ({documents.length})</h2>
+        <div className="flex justify-between items-center mb-4 w-full">
+          <h2 className="text-lg font-semibold">Τράπεζες ({documents.length})</h2>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setOpenBanks(openBanks.length === documents.length ? [] : documents.map((b) => b.bankName))}
+            onClick={() =>
+              setOpenBanks(
+                openBanks.length === documents.length ? [] : documents.map((b) => b.bankName)
+              )
+            }
           >
-            {openBanks.length === documents.length ? "Collapse All" : "Expand All"}
+            {openBanks.length === documents.length ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+            {openBanks.length === documents.length ? "Σύμπτυξη" : "Εμφάνιση Όλων"}
           </Button>
         </div>
 
         <ScrollArea className="h-[calc(100vh-12rem)]">
-          <div className="space-y-4 pr-4">
+          <div className="space-y-4">
             {documents.map((bank) => (
               <Collapsible
                 key={bank.bankName}
@@ -119,7 +130,10 @@ export function PdfLibrary() {
                 className="border rounded-md overflow-hidden bg-white"
               >
                 <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="w-full flex justify-between items-center p-4 h-auto">
+                  <Button
+                    variant="ghost"
+                    className="w-full flex justify-between items-center p-4 h-auto"
+                  >
                     <div className="flex items-center gap-3 font-medium">
                       {openBanks.includes(bank.bankName) ? (
                         <ChevronDown className="h-4 w-4" />
@@ -145,7 +159,7 @@ export function PdfLibrary() {
         </ScrollArea>
       </div>
     </div>
-  )
+  );
 }
 
 function DocumentCard({ document }: { document: Document }) {
@@ -185,5 +199,5 @@ function DocumentCard({ document }: { document: Document }) {
         </div>
       </CardContent>
     </Card>
-  )
+  );
 }

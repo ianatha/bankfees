@@ -25,12 +25,13 @@ interface BankGroup {
 }
 
 interface SearchResultsProps {
+  updating?: boolean;
   results: BankGroup[];
   onResultClick: (result: SearchResult) => void;
   searchQuery: string;
 }
 
-export function SearchResults({ results, onResultClick, searchQuery }: SearchResultsProps) {
+export function SearchResults({ updating, results, onResultClick, searchQuery }: SearchResultsProps) {
   const [openBanks, setOpenBanks] = useState<string[]>([]);
   const [expandedResults, setExpandedResults] = useState<string[]>([]);
 
@@ -60,6 +61,9 @@ export function SearchResults({ results, onResultClick, searchQuery }: SearchRes
     <div>
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-semibold">Αποτελέσματα Αναζήτησης</h2>
+        {updating && (
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-800"></div>
+        )}
         <Badge variant="outline">
           {results.reduce((acc, bank) => acc + bank.results.length, 0)} matches
         </Badge>

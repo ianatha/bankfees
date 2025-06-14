@@ -10,8 +10,8 @@ export default function Home() {
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between">
           <BankHeader
-            title="Έρευνα Τραπεζικών Χρεώσεων"
-            subtitle="Αναζητήστε λέξεις-κλειδιά που σχετίζονται με χρεώσεις σε τραπεζικά έγγραφα"
+            title="Έρευνα Τραπεζικών Όρων & Χρεώσεων"
+            subtitle="Αναζητήστε λέξεις-κλειδιά σε γενικούς όρους συναλλαγών τραπεζών"
           />
           <Link href="/pdfs">
             <Button variant="outline" className="flex items-center gap-2">
