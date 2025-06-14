@@ -1,0 +1,41 @@
+{
+  "name": "retail",
+  "description": "Retail company domain for analyzing product catalogs and documents",
+  "entities": {
+    "amazon": {
+      "name": "Amazon",
+      "description": "Amazon retail platform",
+      "display_name": "Amazon"
+    },
+    "walmart": {
+      "name": "Walmart",
+      "description": "Walmart retail stores",
+      "display_name": "Walmart"
+    },
+    "target": {
+      "name": "Target",
+      "description": "Target retail stores",
+      "display_name": "Target"
+    }
+  },
+  "document_categories": {
+    "ProductCatalog": "Product catalogs and listings",
+    "PriceList": "Pricing information and fee schedules",
+    "Terms": "Terms of service and purchase agreements",
+    "ReturnPolicy": "Return and refund policies",
+    "ShippingInfo": "Shipping and delivery information",
+    "CustomerGuide": "Customer service guides and FAQs"
+  },
+  "entity_urls": {
+    "amazon": [
+      "https://www.amazon.com/help"
+    ],
+    "walmart": [
+      "https://www.walmart.com/help"
+    ],
+    "target": [
+      "https://www.target.com/help"
+    ]
+  },
+  "default_category": "Uncategorized"
+}

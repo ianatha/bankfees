@@ -4,7 +4,8 @@ from pydantic import HttpUrl
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
-from domain_model import BankRootUrls
+from generic_domain_model import EntityDocumentRoots
+from domain_config import domain_manager
 from tqdm import tqdm
 import datetime
 from pathlib import Path
@@ -51,13 +52,13 @@ def download_file(url: str, dest_path: str, chunk_size: int = 8192, existing_eta
         return response.headers.get("ETag"), True
 
 
-def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
+def download_pdfs(entity_name: str, page_url: str, base_folder: str = "data_new"):
     """
     Scrapes all PDF links from the given page URL and downloads them into
-    data_new/{bank_name}/, using DocumentAnalysis to track metadata and ETags.
+    data_new/{entity_name}/, using DocumentAnalysis to track metadata and ETags.
     """
     # Create target directory
-    target_dir = os.path.join(base_folder, bank_name)
+    target_dir = os.path.join(base_folder, entity_name)
     os.makedirs(target_dir, exist_ok=True)
 
     # Fetch page content
@@ -83,7 +84,7 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
         
         # Load existing DocumentAnalysis if available
         try:
-            doc_analysis = load_document_analysis(dest_path, bank=bank_name)
+            doc_analysis = load_document_analysis(dest_path, bank=entity_name)
         except FileNotFoundError:
             doc_analysis = None
         if doc_analysis is not None:
@@ -99,7 +100,7 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
                     file_path=dest_path,
                     retrieved_from=pdf_url,
                     retrieved_at=datetime.datetime.now(datetime.timezone.utc),
-                    bank=bank_name,
+                    bank=entity_name,
                     retrieved_etag=new_etag,
                 )
             # Create or update DocumentAnalysis
@@ -113,13 +114,24 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
             if e.response.status_code == 304:
                 # Not modified, skip
                 continue
-            print(f"[ERROR] Failed to download {pdf_url} for {bank_name}: {e}")
+            print(f"[ERROR] Failed to download {pdf_url} for {entity_name}: {e}")
 
 
 def main():
-    for bank_name, urls in tqdm(BankRootUrls.root.items(), desc="Banks", unit="bank"):
-        for url in tqdm(urls, desc=f"  Crawling {bank_name.value} URLs", unit="URL", leave=False):
-            download_pdfs(bank_name.value, url.encoded_string())
+    # Initialize domain configuration
+    if not domain_manager.config:
+        from pathlib import Path
+        banking_config = Path("banking_domain.json")
+        if banking_config.exists():
+            domain_manager.load_config(banking_config)
+        else:
+            print("Error: No domain configuration found. Please provide a domain config file.")
+            return
+    
+    entity_urls = EntityDocumentRoots()
+    for entity_name, urls in tqdm(entity_urls.items(), desc="Entities", unit="entity"):
+        for url in tqdm(urls, desc=f"  Crawling {entity_name} URLs", unit="URL", leave=False):
+            download_pdfs(entity_name, str(url))
 
 
 if __name__ == "__main__":

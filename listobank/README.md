@@ -1,23 +1,25 @@
-# Listobank
+# Generic Document Analysis System
 
-A comprehensive tool for analyzing and comparing bank fees across major Greek banks (Alpha Bank, Attica Bank, Eurobank, NBG, Piraeus Bank). The system automatically retrieves pricing documents, classifies them using LLM analysis, and provides a searchable interface through a Next.js web application.
+A flexible, domain-configurable tool for analyzing documents across different industries. Originally designed for analyzing bank fees across major Greek banks, the system now supports any domain through configurable entity and document category definitions. It automatically retrieves documents, classifies them using LLM analysis, and provides a searchable interface through a Next.js web application.
 
 ## Features
 
-- **Automated Document Retrieval**: Downloads pricing documents and fee schedules from bank websites
-- **AI-Powered Classification**: Uses Gemini AI to automatically categorize documents (price lists, fee schedules, terms & conditions, etc.)
-- **Document Analysis**: Extracts structured data from PDFs with analysis of fees, rates, and terms
+- **Domain-Configurable**: Supports any industry/domain through JSON configuration files
+- **Automated Document Retrieval**: Downloads documents from configurable entity websites
+- **AI-Powered Classification**: Uses Gemini AI to automatically categorize documents based on domain-specific categories
+- **Document Analysis**: Extracts structured data from PDFs with domain-specific analysis
 - **Search Interface**: Next.js web application with MeiliSearch for fast document search and comparison
-- **Multi-Bank Support**: Covers Alpha Bank, Attica Bank, Eurobank, NBG, and Piraeus Bank
+- **Multi-Entity Support**: Configurable to work with any set of entities (banks, insurance companies, retailers, etc.)
 
 ## Project Structure
 
 ```
-├── data/              # Raw PDF documents organized by bank
+├── data/              # Raw PDF documents organized by entity
 ├── data_new/          # Processed documents with AI analysis
-├── pricelists/        # Consolidated price lists by bank
+├── pricelists/        # Consolidated documents by entity
 ├── ui/                # Next.js web interface
 ├── explorations/      # Jupyter notebooks for data exploration
+├── *_domain.json      # Domain configuration files
 └── *.py               # Python processing scripts
 ```
 
@@ -34,23 +36,60 @@ cd ui
 npm install
 ```
 
+3. Initialize your domain configuration:
+```bash
+# Use the default banking configuration
+python init_domain.py
+
+# Or specify a different configuration file
+python init_domain.py my_domain.json
+```
+
 ## Usage
+
+### Domain Configuration
+
+1. **List available domains**:
+```bash
+python configure_domain.py list
+```
+
+2. **Create a new domain** (e.g., insurance or retail):
+```bash
+python configure_domain.py create insurance
+python configure_domain.py create retail
+```
+
+3. **Set active domain**:
+```bash
+python configure_domain.py set insurance_domain.json
+```
+
+4. **View current domain**:
+```bash
+python configure_domain.py show
+```
 
 ### Data Processing Pipeline
 
-1. **Retrieve Documents**: Download latest documents from bank websites
+1. **Initialize domain** (run this first):
 ```bash
-./pdf_retriever.py
+python init_domain.py [config_file]
 ```
 
-2. **Classify Documents**: Use AI to categorize documents
+2. **Retrieve Documents**: Download latest documents from entity websites
 ```bash
-./doc_classification.py
+python pdf_retriever.py
 ```
 
-3. **Index for Search**: Add documents to MeiliSearch index
+3. **Classify Documents**: Use AI to categorize documents
 ```bash
-./pdfs_to_meili.py
+python doc_classification.py
+```
+
+4. **Index for Search**: Add documents to MeiliSearch index
+```bash
+python pdfs_to_meili.py
 ```
 
 ### Web Interface
@@ -63,17 +102,28 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to access the search interface.
 
-## Document Categories
+## Domain Configuration
 
-The system classifies documents into the following categories:
-- **PriceList**: General fee schedules and pricing
-- **PriceListExclusive**: Premium/private banking fees
-- **InterestRates**: Deposit and loan interest rates
-- **PaymentFees**: Payment and transfer charges
-- **DeltioPliroforisisPeriTelon**: Official fee disclosure documents
-- **GeneralTermsContract**: Terms and conditions
-- **Disclosure**: Risk disclosures and regulatory information
-- **CustomerGuide**: Customer service documentation
+The system uses JSON configuration files to define:
+
+- **Entities**: Organizations to analyze (banks, insurance companies, etc.)
+- **Document Categories**: Types of documents specific to your domain
+- **Entity URLs**: Website URLs to scrape for documents
+- **Category Descriptions**: Detailed descriptions for AI classification
+
+### Example Domain Configurations
+
+**Banking Domain** (`banking_domain.json`):
+- Entities: Alpha Bank, Attica Bank, Eurobank, NBG, Piraeus Bank
+- Categories: PriceList, InterestRates, PaymentFees, etc.
+
+**Insurance Domain** (create with `configure_domain.py create insurance`):
+- Entities: Allianz, AXA, Generali
+- Categories: Policy, Terms, PremiumSchedule, ClaimsInfo, etc.
+
+**Retail Domain** (create with `configure_domain.py create retail`):
+- Entities: Amazon, Walmart, Target  
+- Categories: ProductCatalog, PriceList, ReturnPolicy, etc.
 
 ## Requirements
 
@@ -81,3 +131,4 @@ The system classifies documents into the following categories:
 - Node.js 18+
 - MeiliSearch server
 - Google AI API key (for document classification)
+- Domain configuration file (JSON)

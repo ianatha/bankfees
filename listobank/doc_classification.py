@@ -3,11 +3,12 @@ import concurrent.futures
 import datetime
 
 from pydantic import BaseModel, Field
-from doc_analysis import DocumentCategory, load_document_analysis
+from doc_analysis import load_document_analysis
 from tqdm import tqdm
 from pathlib import Path
 from gemini import create_gemini, generate_content
-from domain_model import Categories
+from generic_domain_model import DocumentCategory, Categories
+from domain_config import domain_manager
 
 root_dir = Path.cwd() / "data_new"
 
@@ -15,7 +16,7 @@ root_dir = Path.cwd() / "data_new"
 PAGES_CONTEXT_LIMIT = 12
 
 class DocumentLLMClassification(BaseModel):
-  category: DocumentCategory = Field(
+  category: str = Field(
       ..., description="document category"
   )
   effective_date: datetime.datetime | None = Field(
@@ -61,7 +62,8 @@ def process_pdf(gemini, pdf_file):
     print(f"Warning: No text extracted from {pdf_file.name}. Skipping...")
     return None
 
-  prompt = classification_prompt(Categories, pdf_file.name, pages_text)
+  categories = Categories()
+  prompt = classification_prompt(categories, pdf_file.name, pages_text)
   llm_classification: DocumentLLMClassification = generate_content(
       gemini, prompt, response_schema=DocumentLLMClassification)
   doc_analysis.category = llm_classification.category
@@ -74,6 +76,16 @@ def process_pdf(gemini, pdf_file):
 
 
 def main():
+  # Initialize domain configuration
+  if not domain_manager.config:
+    from pathlib import Path
+    banking_config = Path("banking_domain.json")
+    if banking_config.exists():
+      domain_manager.load_config(banking_config)
+    else:
+      print("Warning: No domain configuration found. Using default.")
+      return
+  
   gemini = create_gemini()
   pdf_files = list(root_dir.glob("**/*.pdf"))
   with concurrent.futures.ThreadPoolExecutor() as executor:

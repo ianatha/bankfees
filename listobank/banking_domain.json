@@ -1,0 +1,63 @@
+{
+  "name": "banking",
+  "description": "Greek banking domain for analyzing bank fees and documents",
+  "entities": {
+    "alpha": {
+      "name": "Alpha Bank",
+      "description": "Alpha Bank Greece",
+      "display_name": "Alpha Bank"
+    },
+    "attica": {
+      "name": "Attica Bank", 
+      "description": "Attica Bank Greece",
+      "display_name": "Attica Bank"
+    },
+    "nbg": {
+      "name": "National Bank of Greece",
+      "description": "National Bank of Greece",
+      "display_name": "NBG"
+    },
+    "eurobank": {
+      "name": "Eurobank",
+      "description": "Eurobank Greece", 
+      "display_name": "Eurobank"
+    },
+    "piraeus": {
+      "name": "Piraeus Bank",
+      "description": "Piraeus Bank Greece",
+      "display_name": "Piraeus Bank"
+    }
+  },
+  "document_categories": {
+    "CustomerGuide": "Οδηγίες για την διευκόλυνση των πελατών της τράπεζας κατά τη διενέργεια ραντεβού ή συνναλαγών",
+    "DeltioPliroforisisPeriTelon": "Έγγραφα με τίτλο \"Δελτίο Πληροφόρησης περί Τελών\"",
+    "Disclosure": "Έγγραφα ενημέρωσης πελάτη για υποχρεώσεις, κινδύνους και διαφάνεια όρων (αποποιήσεις ευθυνών, γνωστοποιήσεις), εκτός από Δελτία Πληροφόρησης περί Τελών",
+    "GeneralTermsContract": "Γενικοί όροι σύμβασης και συναλλαγών μεταξύ πελάτη και τράπεζας",
+    "InterestRates": "Έγγραφα που περιέχουν πληροφορίες για επιτόκια καταθέσεων, δανείων και άλλων τραπεζικών προϊόντων",
+    "PaymentFees": "Πίνακες τελών και προμηθειών για πληρωμές, μεταφορές και υπηρεσίες σε συγκεκριμένους παραλήπτες",
+    "PriceList": "Γενικός τιμοκατάλογος τραπεζικών προϊόντων και υπηρεσιών με βασικές χρεώσεις και επιτόκια",
+    "PriceListExclusive": "Ειδικός τιμοκατάλογος για premium προϊόντα/υπηρεσίες (π.χ. private banking, gold accounts)"
+  },
+  "entity_urls": {
+    "alpha": [
+      "https://www.alpha.gr/el/idiotes/support-center/isxuon-timologio-kai-oroi-sunallagon"
+    ],
+    "attica": [
+      "https://www.atticabank.gr/el/eidikoi-oroi-trapezikon-ergasion-timologio-ergasion/",
+      "https://www.atticabank.gr/el/genikoi-oroi-synallagon/"
+    ],
+    "piraeus": [
+      "https://www.piraeusbank.gr/el/support/epitokia-deltia-timwn",
+      "https://www.piraeusbank.gr/el/support/synallaktikoi-oroi"
+    ],
+    "nbg": [
+      "https://www.nbg.gr/el/footer/timologia-ergasiwn",
+      "https://www.nbg.gr/el/footer/deltio-plhroforhshs-peri-telwn"
+    ],
+    "eurobank": [
+      "https://www.eurobank.gr/el/timologia",
+      "https://www.eurobank.gr/el/oroi-sunallagon"
+    ]
+  },
+  "default_category": "Uncategorized"
+}

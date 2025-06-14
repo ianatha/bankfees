@@ -13,7 +13,8 @@ from meilisearch import Client, errors as meilisearch_errors
 from meilisearch.models.task import TaskInfo
 
 from tqdm.auto import tqdm
-from domain_model import BankDocument
+from generic_domain_model import GenericDocument
+from domain_config import domain_manager
 from utils import extract_pages_text
 
 def wait_for_task(meili: Client, task: TaskInfo, desc: str = "", verbose: bool = True) -> TaskInfo:
@@ -44,7 +45,7 @@ def swap_index(meili: Client, old_index_name: str, new_index_name: str):
 
 def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int = 10):
   """
-  Walk through each subfolder in root_dir (each representing a bank), extract text from all PDFs,
+  Walk through each subfolder in root_dir (each representing an entity), extract text from all PDFs,
   split them by page, add previous-page context, and index them into the specified MeiliSearch index in batches.
   """
   try:
@@ -57,7 +58,7 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
                   desc=f"Create index '{index_name}'")
     index = meili.get_index(index_name)
     wait_for_task(meili,
-                  index.update_filterable_attributes(["bank"]),
+                  index.update_filterable_attributes(["entity"]),
                   desc=f"Set filterable attributes for index '{index_name}'")
 
   print(
@@ -66,12 +67,12 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
   buffer = []
   tasks = []
   print()
-  for bank_folder in tqdm(list(root_dir.iterdir()), desc="Banks", unit="bank", leave=True):
-    if not bank_folder.is_dir():
+  for entity_folder in tqdm(list(root_dir.iterdir()), desc="Entities", unit="entity", leave=True):
+    if not entity_folder.is_dir():
       continue
-    bank_name = bank_folder.name
+    entity_name = entity_folder.name
 
-    for pdf_file in tqdm(list(bank_folder.glob("*.pdf")), desc=f"  Processing PDFs in {bank_name}", unit="pdf", leave=False):
+    for pdf_file in tqdm(list(entity_folder.glob("*.pdf")), desc=f"  Processing PDFs in {entity_name}", unit="pdf", leave=False):
       if not pdf_file.is_file() or pdf_file.name.startswith("_"):
         continue
 
@@ -80,13 +81,13 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
       document_mtime = pdf_file.stat().st_mtime_ns
       # prev_text = ""
 
-      for page_idx in tqdm(range(len(pages)), desc=f"    Converting Pages to BankDocument in {pdf_file.name}", unit="page", leave=False):
+      for page_idx in tqdm(range(len(pages)), desc=f"    Converting Pages to GenericDocument in {pdf_file.name}", unit="page", leave=False):
         content = pages[page_idx]
 
-        doc_id = f"{bank_name}_{document_name_hash}_{document_mtime}_p{page_idx}"
-        doc = BankDocument(
+        doc_id = f"{entity_name}_{document_name_hash}_{document_mtime}_p{page_idx}"
+        doc = GenericDocument(
             id=doc_id,
-            bank=bank_name,
+            entity=entity_name,
             filename=pdf_file.name,
             path=str(pdf_file),
             page=page_idx+1,
@@ -144,7 +145,7 @@ def main():
       description="Index bank PDFs into MeiliSearch")
   parser.add_argument(
       "--root-dir", type=Path, default=Path.cwd() / "data",
-      help="Root directory containing bank-named subfolders with PDFs (default: ./data)"
+      help="Root directory containing entity-named subfolders with PDFs (default: ./data)"
   )
   parser.add_argument(
       "--meili-url", type=str, default=default_url,
@@ -155,7 +156,7 @@ def main():
       help="API key for MeiliSearch (or set MEILI_API_KEY env)"
   )
   parser.add_argument(
-      "--index-name", type=str, default="bankfees",
+      "--index-name", type=str, default="documents",
       help="Name of the MeiliSearch index to use or create"
   )
   parser.add_argument(

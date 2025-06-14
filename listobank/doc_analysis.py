@@ -1,9 +1,9 @@
 import datetime
 from hashlib import md5
 from pydantic import BaseModel, Field, HttpUrl, ValidationError
-from domain_model import DocumentCategory
 from utils import extract_pages_text
 from pathlib import Path
+from domain_config import domain_manager
 
 
 class DocumentAnalysis(BaseModel):
@@ -25,8 +25,8 @@ class DocumentAnalysis(BaseModel):
   content_hash: str = Field(
       ..., description="hash of the source file for integrity checks"
   )
-  category: DocumentCategory = Field(
-      default=DocumentCategory.Uncategorized, description="document category"
+  category: str = Field(
+      default=None, description="document category"
   )
   document_title: str | None = Field(
       default=None, description="title of the document, if available"
@@ -81,7 +81,7 @@ def new_document_analysis(file_path: Path,
       bank=bank,
       content_hash=content_hash,
       retrieved_etag=retrieved_etag,
-      category=DocumentCategory.Uncategorized
+      category=domain_manager.get_default_category() if domain_manager.config else "Uncategorized"
   )
 
 

@@ -19,8 +19,8 @@ export default function Home() {
         <div className="flex flex-col w-full items-center gap-2">
           <div className="w-96 text-center">
             <Balancer>
-              Έχουν ανακτηθεί <span className="font-bold">1,000+</span> σελίδες όρων συμβάσεων και
-              τιμολογιακών πρακτικών από τις εξης τράπεζες:
+              Έχουμε <span className="font-bold">κατεβάσει, ταξινομήσει και τιθασεύσει</span> 1000+ σελίδες τραπεζικών όρων συναλλαγών και τιμολογιακών
+              πρακτικών από τις εξής τράπεζες:
             </Balancer>
           </div>
           <div className="flex gap-3">
@@ -34,13 +34,13 @@ export default function Home() {
         <div className="flex flex-row justify-center items-center gap-4">
           <Link href="/search">
             <Button variant="outline" className="flex flex-col items-center gap-2 h-32 w-32">
-              <SearchIcon className="h-8 w-8" />
+              <SearchIcon className="!h-8 !w-8" />
               Αναζήτηση
             </Button>
           </Link>
           <Link href="/pdfs">
             <Button variant="outline" className="flex flex-col items-center gap-2 h-32 w-32">
-              <LibraryIcon className="h-16 w-16" />
+              <LibraryIcon className="!h-8 !w-8" />
               Βιβλιοθήκη
             </Button>
           </Link>
