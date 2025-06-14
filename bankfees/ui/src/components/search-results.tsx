@@ -28,10 +28,17 @@ interface SearchResultsProps {
   updating?: boolean;
   results: BankGroup[];
   onResultClick: (result: SearchResult) => void;
-  searchQuery: string;
+  searchQuery: string; // original user input
+  highlightQuery: string; // parsed query used for highlighting
 }
 
-export function SearchResults({ updating, results, onResultClick, searchQuery }: SearchResultsProps) {
+export function SearchResults({
+  updating,
+  results,
+  onResultClick,
+  searchQuery,
+  highlightQuery,
+}: SearchResultsProps) {
   const [openBanks, setOpenBanks] = useState<string[]>([]);
   const [expandedResults, setExpandedResults] = useState<string[]>([]);
 
@@ -125,7 +132,7 @@ export function SearchResults({ updating, results, onResultClick, searchQuery }:
 
                             {/* Primary context snippet */}
                             <div className="text-sm mb-2">
-                              <HighlightedText text={result.highlight} searchTerm={searchQuery} />
+                              <HighlightedText text={result.highlight} searchTerm={highlightQuery} />
                             </div>
 
                             {/* Additional context snippets */}
@@ -137,7 +144,7 @@ export function SearchResults({ updating, results, onResultClick, searchQuery }:
                                         key={snippetIdx}
                                         className="text-sm text-slate-600 pl-4 border-l-2 border-slate-200"
                                       >
-                                        <HighlightedText text={snippet} searchTerm={searchQuery} />
+                                        <HighlightedText text={snippet} searchTerm={highlightQuery} />
                                       </div>
                                     ))
                                   : result.contextSnippets.length > 1 && (

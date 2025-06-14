@@ -7,6 +7,7 @@ import { SearchResults } from "@/components/search-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useSearchResults } from "@/hooks/use-search-results";
+import { parseSearchInput } from "@/lib/utils";
 import { Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -42,6 +43,8 @@ export function SearchInterface() {
       performSearch(searchQuery);
     }
   };
+
+  const { query: highlightQuery } = parseSearchInput(searchQuery);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.5fr] gap-6">
@@ -81,6 +84,7 @@ export function SearchInterface() {
               results={results}
               onResultClick={setSelectedResult}
               searchQuery={searchQuery}
+              highlightQuery={highlightQuery}
             />
           )}
         </div>
@@ -94,7 +98,7 @@ export function SearchInterface() {
               "/api/file/"
             )}
             pageNumber={selectedResult.pageNumber}
-            searchTerm={searchQuery}
+            searchTerm={highlightQuery}
             highlight={selectedResult.highlight}
             bankName={selectedResult.bankName}
           />
