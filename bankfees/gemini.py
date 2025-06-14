@@ -1,7 +1,8 @@
 import os
 import sys
+from typing import Optional
 from google import genai
-from google.genai.types import Tool, GenerateContentConfig, GoogleSearch
+from google.genai.types import Tool, GenerateContentConfig, GoogleSearch, SchemaUnion, ThinkingConfig
 import json
 
 MODEL_NAME = "gemini-2.5-pro-preview-06-05"
@@ -24,7 +25,7 @@ def create_gemini() -> genai.Client:
   return client
 
 
-def generate_content(client: genai.Client, prompt: str, tools: list[Tool] = []) -> str:
+def generate_content(client: genai.Client, prompt: str, tools: list[Tool] = [], response_schema: Optional[SchemaUnion] = None):
   """
   Generate content using the Gemini model.
   Args:
@@ -33,29 +34,43 @@ def generate_content(client: genai.Client, prompt: str, tools: list[Tool] = []) 
   Returns:
       The generated content as a string, or an empty list if no content is found.
   """
+
+  if response_schema and len(tools) == 0:
+    config = GenerateContentConfig(
+        tools=tools,
+        thinking_config=ThinkingConfig(
+          include_thoughts=False,
+          thinking_budget=2000,
+        ),
+        response_modalities=["TEXT"],
+        response_mime_type="application/json",
+        response_schema=response_schema,
+    )
+  elif not response_schema and len(tools) > 0:
+    config = GenerateContentConfig(
+        tools=tools,
+        response_modalities=["TEXT"]
+    )
+  else:
+    raise ValueError("Either response_schema or tools must be provided, but not both.")
+  
   response = client.models.generate_content(
       model=MODEL_NAME,
       contents=prompt,
-      config=GenerateContentConfig(tools=tools, response_modalities=["TEXT"]),
+      config=config,
   )
 
   if not response.candidates:
-    print("No candidates found in the response.", file=sys.stderr)
-    return []
+    raise ValueError("No candidates found in the response.")
   if not response.candidates[0].content.parts:
-    print("No content parts found in the first candidate.", file=sys.stderr)
-    return []
+    raise ValueError("No content parts found in the first candidate.")
   if not response.candidates[0].content.parts[0].text:
-    print("No text found in the first content part.", file=sys.stderr)
-    return []
+    raise ValueError("No text found in the first content part.")
 
-  # Print the raw response for debugging
-  print("Raw response:")
-  print(json.dumps(response.to_json_dict(), indent=2, ensure_ascii=False))
-  print()
-
-  return response.candidates[0].content.parts[0].text
-
+  if response_schema:
+    return response_schema.model_validate_json(response.candidates[0].content.parts[0].text)
+  else:
+    return response.candidates[0].content.parts[0].text.strip()
 
 def generate_content_with_search(client: genai.Client, prompt: str) -> str:
   """
