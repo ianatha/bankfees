@@ -24,12 +24,13 @@ categories = {
     # "Unknown": "Έγγραφο μη κατηγοριοποιημένο ή αδιευκρίνιστης κατηγορίας",
 }
 
+PAGES_CONTEXT_LIMIT = 12
 
 class DocumentLLMClassification(BaseModel):
   category: DocumentCategory = Field(
       ..., description="document category"
   )
-  effective_date: datetime.date | None = Field(
+  effective_date: datetime.datetime | None = Field(
       ..., description="date when the document becomes effective"
   )
   document_title: str | None = Field(
@@ -67,7 +68,7 @@ def process_pdf(gemini, pdf_file):
     return None
 
   doc_analysis = load_document_analysis(pdf_file)
-  pages_text = doc_analysis.get_pages_as_text(indent_level=1)[:5]
+  pages_text = doc_analysis.get_pages_as_text(indent_level=1)[:PAGES_CONTEXT_LIMIT]
   if not pages_text:
     print(f"Warning: No text extracted from {pdf_file.name}. Skipping...")
     return None

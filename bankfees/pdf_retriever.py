@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 import os
+from pydantic import HttpUrl
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 from ground_truths import BankRootUrls
 from tqdm import tqdm
-import json
+import datetime
+from pathlib import Path
+from doc_analysis import DocumentAnalysis, load_document_analysis, new_document_analysis
 
 HEADERS = {
     "User-Agent": (
@@ -16,20 +19,21 @@ HEADERS = {
 }
 
 
-def download_file(url: str, dest_path: str, chunk_size: int = 8192, etag: str = None):
+def download_file(url: str, dest_path: str, chunk_size: int = 8192, existing_etag: str = None, indent_level: int = 0) -> tuple[str, bool]:
     """
     Streams a file from the given URL to the specified filesystem path.
     Uses ETag for conditional requests if provided.
-    Returns the new ETag (if any).
+    Returns tuple of (new_etag, was_modified).
     """
     headers = HEADERS.copy()
-    if etag:
-        headers["If-None-Match"] = etag
+    if existing_etag:
+        headers["If-None-Match"] = existing_etag
 
+    indentation = "  " * indent_level
     with requests.get(url, headers=headers, stream=True, timeout=15) as response:
         if response.status_code == 304:
             # Not modified
-            return etag
+            return existing_etag, False
         response.raise_for_status()
         with open(dest_path, "wb") as f:
             total = int(response.headers.get("content-length", 0))
@@ -37,32 +41,24 @@ def download_file(url: str, dest_path: str, chunk_size: int = 8192, etag: str = 
                 total=total,
                 unit="B",
                 unit_scale=True,
-                desc=os.path.basename(dest_path),
+                desc=indentation + os.path.basename(dest_path),
                 leave=False,
             ) as pbar:
                 for chunk in response.iter_content(chunk_size=chunk_size):
                     if chunk:
                         f.write(chunk)
                         pbar.update(len(chunk))
-        return response.headers.get("ETag")
+        return response.headers.get("ETag"), True
 
 
 def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
     """
     Scrapes all PDF links from the given page URL and downloads them into
-    data_new/{bank_name}/, skipping files that haven't changed (using ETag).
+    data_new/{bank_name}/, using DocumentAnalysis to track metadata and ETags.
     """
     # Create target directory
     target_dir = os.path.join(base_folder, bank_name)
     os.makedirs(target_dir, exist_ok=True)
-
-    # ETag cache file
-    etag_cache_path = os.path.join(target_dir, "_etag_cache.json")
-    if os.path.exists(etag_cache_path):
-        with open(etag_cache_path, "r") as f:
-            etag_cache = json.load(f)
-    else:
-        etag_cache = {}
 
     # Fetch page content
     resp = requests.get(page_url, headers=HEADERS, timeout=15)
@@ -79,38 +75,51 @@ def download_pdfs(bank_name: str, page_url: str, base_folder: str = "data_new"):
             pdf_links.add(full_url)
 
     # Download each PDF
-    updated = False
     for pdf_url in tqdm(
         sorted(pdf_links), desc=f"    Downloading PDFs from {page_url}", unit="file", leave=False
     ):
         filename = os.path.basename(urlparse(pdf_url).path)
-        dest_path = os.path.join(target_dir, filename)
-        etag = etag_cache.get(pdf_url)
+        dest_path = Path(target_dir) / filename
+        
+        # Load existing DocumentAnalysis if available
         try:
-            new_etag = download_file(pdf_url, dest_path, etag=etag)
-            if new_etag:
-                etag_cache[pdf_url] = new_etag
-                updated = True
+            doc_analysis = load_document_analysis(dest_path)
+        except FileNotFoundError:
+            doc_analysis = None
+        if doc_analysis is not None:
+            existing_etag = doc_analysis.retrieved_etag
+        else:
+            existing_etag = None
+
+        try:
+            new_etag, was_modified = download_file(pdf_url, str(dest_path), existing_etag=existing_etag, indent_level=3)
+            
+            if doc_analysis is None:
+                doc_analysis = new_document_analysis(
+                    file_path=dest_path,
+                    retrieved_from=pdf_url,
+                    retrieved_at=datetime.datetime.now(datetime.timezone.utc),
+                    retrieved_etag=new_etag,
+                )
+            # Create or update DocumentAnalysis
+            if was_modified:
+                doc_analysis.retrieved_from = HttpUrl(pdf_url)
+                doc_analysis.retrieved_at = datetime.datetime.now(datetime.timezone.utc)
+                doc_analysis.retrieved_etag = new_etag
+                doc_analysis.save()
+                
         except requests.HTTPError as e:
             if e.response.status_code == 304:
                 # Not modified, skip
                 continue
             print(f"[ERROR] Failed to download {pdf_url} for {bank_name}: {e}")
-        except Exception as e:
-            print(f"[ERROR] Failed to download {pdf_url} for {bank_name}: {e}")
-
-    # Save updated ETag cache
-    if updated:
-        with open(etag_cache_path, "w") as f:
-            json.dump(etag_cache, f, indent=2)
-
 
 
 def main():
-  for bank_name, urls in tqdm(BankRootUrls.root.items(), desc="Banks", unit="bank"):
-    for url in tqdm(urls, desc=f"  Crawling {bank_name.value} URLs", unit="URL", leave=False):
-        download_pdfs(bank_name.value, url.encoded_string())
+    for bank_name, urls in tqdm(BankRootUrls.root.items(), desc="Banks", unit="bank"):
+        for url in tqdm(urls, desc=f"  Crawling {bank_name.value} URLs", unit="URL", leave=False):
+            download_pdfs(bank_name.value, url.encoded_string())
 
 
 if __name__ == "__main__":
-  main()
+    main()

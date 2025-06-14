@@ -2,6 +2,7 @@
 
 import json
 from pathlib import Path
+from doc_analysis import load_document_analysis
 
 
 correct_classifications = {
@@ -50,7 +51,7 @@ correct_classifications = {
     'nbg/Value-GR.pdf': 'DeltioPliroforisisPeriTelon',
     'nbg/Value-Plus-GR.pdf': 'DeltioPliroforisisPeriTelon',
 
-    'nbg/web_portal_elliniko_epitokia-timologio_daneiwn.pdf': 'InterestRates',
+    'nbg/web_portal_elliniko_epitokia-timologio_daneiwn.pdf': 'PriceList',
     'nbg/web_portal_elliniko_epitokia-timologio_kartwn.pdf': 'PriceList',
     'nbg/web_portal_elliniko_epitokia-timologio_katathesewn.pdf': 'PriceList',
     'nbg/web_portal_elliniko_timologio_loipwn_ergasiwn.pdf': 'PriceList',
@@ -73,14 +74,25 @@ correct_classifications = {
 }
 
 
-def load_classification_results(file_path: Path) -> dict[str, str]:
+def load_classification_results(data_dir: Path) -> dict[str, str]:
   """
-  Load classification results from a JSON file.
+  Load classification results from DocumentAnalysis files.
   """
-  if not file_path.is_file():
-    return {}
-  with file_path.open('r', encoding='utf-8') as f:
-    return json.load(f)
+  classifications = {}
+  
+  # Iterate through all subdirectories (banks)
+  for bank_dir in data_dir.iterdir():
+    if bank_dir.is_dir() and not bank_dir.name.startswith('_'):
+      # Iterate through PDF files in each bank directory
+      for pdf_file in bank_dir.glob('*.pdf'):
+        try:
+          doc_analysis = load_document_analysis(pdf_file)
+          relative_path = f"{bank_dir.name}/{pdf_file.name}"
+          classifications[relative_path] = doc_analysis.category.value
+        except Exception as e:
+          print(f"Error loading analysis for {pdf_file}: {e}")
+  
+  return classifications
 
 
 def compare_classifications(correct: dict[str, str], loaded: dict[str, str]) -> None:
@@ -106,11 +118,11 @@ def compare_classifications(correct: dict[str, str], loaded: dict[str, str]) -> 
 
 
 def main():
-  # Define the path to the JSON file
-  file_path = Path.cwd() / "data_new" / "document_classification_results.json"
+  # Define the path to the data directory
+  data_dir = Path.cwd() / "data_new"
 
-  # Load the classification results
-  loaded_classifications = load_classification_results(file_path)
+  # Load the classification results from DocumentAnalysis files
+  loaded_classifications = load_classification_results(data_dir)
 
   # Compare the classifications
   compare_classifications(correct_classifications, loaded_classifications)

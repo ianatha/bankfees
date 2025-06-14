@@ -28,7 +28,7 @@ class DocumentAnalysis(BaseModel):
       ..., description="timestamp of when the document was retrieved"
   )
   retrieved_etag: str | None = Field(
-      None, description="ETag of the document at the time of retrieval"
+      default=None, description="ETag of the document at the time of retrieval"
   )
   relative_file_path: Path = Field(
       ..., description="relative path to the source file from the project directory"
@@ -40,21 +40,24 @@ class DocumentAnalysis(BaseModel):
       default=DocumentCategory.Uncategorized, description="document category"
   )
   document_title: str | None = Field(
-      description="title of the document, if available"
+      default=None, description="title of the document, if available"
   )
-  effective_date: datetime.date | None = Field(
-      ..., description="date when the document becomes effective"
+  effective_date: datetime.datetime | None = Field(
+      default=None, description="date when the document becomes effective"
   )
-  pages_text: list[str] = Field(
-      default_factory=list, description="text content of each page in the document"
+  pages_text: list[str] | None = Field(
+      default=None, description="text content of each page in the document"
   )
 
-  def get_pages_as_text(self,) -> list[str]:
+  def get_pages_as_text(self, indent_level: int = 0) -> list[str]:
     """
     Extracts and returns a list of text content for each page in the document.
     """
     if not self.pages_text:
-      result = extract_pages_text(self.relative_file_path)
+      result = extract_pages_text(self.relative_file_path, indent_level=indent_level)
+      if not result:
+        raise ValueError(f"No text extracted from {self.relative_file_path}. "
+                         "Ensure the file is a valid PDF and contains extractable text.")
       self.pages_text = result
       self.save()
       return result
@@ -70,7 +73,11 @@ class DocumentAnalysis(BaseModel):
       f.write(self.model_dump_json(indent=2, exclude_none=True))
 
 
-def new_document_analysis(file_path: Path) -> DocumentAnalysis:
+def new_document_analysis(file_path: Path,
+                          retrieved_from: HttpUrl,
+                          retrieved_at: datetime.datetime,
+                          retrieved_etag: str | None = None
+                          ) -> DocumentAnalysis:
   """
   Create a new DocumentAnalysis object with the content hash and default category.
   """
@@ -79,6 +86,8 @@ def new_document_analysis(file_path: Path) -> DocumentAnalysis:
   content_hash = md5(file_path.read_bytes()).hexdigest()
   return DocumentAnalysis(
       relative_file_path=file_path,
+      retrieved_from=HttpUrl(retrieved_from),
+      retrieved_at=retrieved_at,
       content_hash=content_hash,
       category=DocumentCategory.Uncategorized
   )
@@ -102,5 +111,4 @@ def load_document_analysis(file_path: Path) -> DocumentAnalysis:
         return new_document_analysis(file_path)
       return result
     except ValidationError as e:
-      print(f"Error loading document analysis from {analysis_file}: {e}")
-      return new_document_analysis(file_path)
+      return None
