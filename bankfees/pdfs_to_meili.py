@@ -11,28 +11,10 @@ import datetime
 
 from meilisearch import Client, errors as meilisearch_errors
 from meilisearch.models.task import TaskInfo
-from PyPDF2 import PdfReader
 
-from pydantic import BaseModel, Field
 from tqdm.auto import tqdm
-
-
-class BankDocument(BaseModel):
-  id: str = Field(..., description="Unique identifier for the document")
-  bank: str = Field(..., description="Name of the bank (parent folder)")
-  filename: str = Field(..., description="Name of the PDF file")
-  path: str = Field(..., description="Full path to the PDF file")
-  page: int = Field(..., description="Page number within the PDF")
-  content: str = Field(..., description="Text content of the page")
-
-
-def extract_pages_text(pdf_path: Path) -> list[str]:
-  """
-  Extracts and returns a list of text content for each page in the PDF file.
-  """
-  reader = PdfReader(str(pdf_path))
-  return [page.extract_text() or "" for page in tqdm(reader.pages,  desc=f"    Extracting text from {pdf_path.name}", unit="page", leave=False)]
-
+from ground_schemata import BankDocument
+from utils import extract_pages_text
 
 def wait_for_task(meili: Client, task: TaskInfo, desc: str = "", verbose: bool = True) -> TaskInfo:
   task_result = meili.wait_for_task(task.task_uid)
@@ -93,7 +75,7 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
       if not pdf_file.is_file() or pdf_file.name.startswith("_"):
         continue
 
-      pages = extract_pages_text(pdf_file)
+      pages = extract_pages_text(pdf_file, indent_level=2)
       document_name_hash = hashlib.md5(pdf_file.stem.encode()).hexdigest()
       document_mtime = pdf_file.stat().st_mtime_ns
       # prev_text = ""
