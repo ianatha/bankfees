@@ -7,7 +7,11 @@ import { SearchResults } from "@/components/search-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useSearchResults } from "@/hooks/use-search-results";
 import { parseSearchInput } from "@/lib/utils";
 import { Filter, Search } from "lucide-react";
@@ -42,32 +46,43 @@ export function SearchInterface() {
     }
   }, [searchParams]);
 
-  const toggleBankSelection = (bank: string) => {
-    setSelectedBanks((prev) =>
-      prev.includes(bank) ? prev.filter((b) => b !== bank) : [...prev, bank]
-    )
-  }
+  const extractBanks = (input: string) => {
+    const bankRegex = /bank:("[^"]+"|\S+)/gi;
+    return [...input.matchAll(bankRegex)].map((m) =>
+      m[1].replace(/^"|"$/g, ""),
+    );
+  };
 
-  useEffect(() => {
-    const query = `${searchQuery} ${selectedBanks
-      .map((b) => `bank:${b}`)
-      .join(" ")}`.trim()
-    if (query.length === 0) {
-      performSearch("")
-    } else if (query.length >= 2) {
-      performSearch(query)
+  const maybePerformSearch = (value: string) => {
+    const { query } = parseSearchInput(value);
+    if (query.trim().length === 0) {
+      performSearch("");
+    } else if (query.trim().length >= 2) {
+      performSearch(value);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBanks])
+  };
+
+  const toggleBankSelection = (bank: string) => {
+    setSelectedBanks((prev) => {
+      const newBanks = prev.includes(bank)
+        ? prev.filter((b) => b !== bank)
+        : [...prev, bank];
+
+      const baseQuery = searchQuery.replace(/bank:("[^"]+"|\S+)/gi, "").trim();
+      const newQuery = `${baseQuery} ${newBanks
+        .map((b) => `bank:${b}`)
+        .join(" ")}`.trim();
+
+      setSearchQuery(newQuery);
+      maybePerformSearch(newQuery);
+
+      return newBanks;
+    });
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    const query = `${searchQuery} ${selectedBanks
-      .map((b) => `bank:${b}`)
-      .join(" ")}`.trim();
-    if (query.length) {
-      performSearch(query);
-    }
+    maybePerformSearch(searchQuery);
   };
 
   const { query: highlightQuery } = parseSearchInput(searchQuery);
@@ -83,16 +98,10 @@ export function SearchInterface() {
               placeholder="Search for fees (e.g., overdraft, wire transfer, ATM)"
               value={searchQuery}
               onChange={(e) => {
-                setSearchQuery(e.target.value);
-                const newSearchQuery = e.target.value.trim();
-                const query = `${newSearchQuery} ${selectedBanks
-                  .map((b) => `bank:${b}`)
-                  .join(" ")}`.trim();
-                if (query.length === 0) {
-                  performSearch("");
-                } else if (query.length >= 2) {
-                  performSearch(query);
-                }
+                const value = e.target.value;
+                setSearchQuery(value);
+                setSelectedBanks(extractBanks(value));
+                maybePerformSearch(value);
               }}
               className="pl-10"
             />
@@ -106,7 +115,10 @@ export function SearchInterface() {
             <PopoverContent className="w-40" align="start">
               <div className="flex flex-col gap-2">
                 {allBanks.map((bank) => (
-                  <label key={bank} className="flex items-center gap-2 text-sm capitalize">
+                  <label
+                    key={bank}
+                    className="flex items-center gap-2 text-sm capitalize"
+                  >
                     <Checkbox
                       checked={selectedBanks.includes(bank)}
                       onCheckedChange={() => toggleBankSelection(bank)}
@@ -145,7 +157,7 @@ export function SearchInterface() {
           <PdfViewer
             documentUrl={selectedResult.documentUrl.replace(
               "/Users/iwa/ekpizo/bankfees/data/",
-              "/api/file/"
+              "/api/file/",
             )}
             pageNumber={selectedResult.pageNumber}
             searchTerm={highlightQuery}
@@ -155,7 +167,9 @@ export function SearchInterface() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Search className="h-12 w-12 mb-4" />
-            <p className="text-lg">Search and select a result to view the PDF</p>
+            <p className="text-lg">
+              Search and select a result to view the PDF
+            </p>
           </div>
         )}
       </div>
