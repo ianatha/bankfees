@@ -12,9 +12,7 @@ pytesseract
 openparse
 huggingface_hub
 fasttext
-pip install 'git+https://github.com/facebookresearch/detectron2.git'
-python -m pip install --user ninja wheel
+ninja
+wheel
+git+https://github.com/facebookresearch/detectron2.git
 
-# now install detectron2 without isolation:
-python -m pip install --no-build-isolation \
-    'git+https://github.com/facebookresearch/detectron2.git' --user
