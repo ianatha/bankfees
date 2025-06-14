@@ -2,6 +2,7 @@ from pathlib import Path
 from PyPDF2 import PdfReader
 from tqdm.auto import tqdm
 
+
 def extract_pages_text(pdf_path: Path, indent_level: int, limit: int = 0) -> list[str]:
   """
   Extracts and returns a list of text content for each page in the PDF file.
