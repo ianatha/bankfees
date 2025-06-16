@@ -1,5 +1,11 @@
 # Generic Document Analysis System
 
+brew install anaconda
+/opt/homebrew/anaconda3/bin/conda init zsh
+conda env create -f environment.yml
+
+conda env export --name <your_env> --from-history > environment.yml
+
 A flexible, domain-configurable tool for analyzing documents across different industries. Originally designed for analyzing bank fees across major Greek banks, the system now supports any domain through configurable entity and document category definitions. It automatically retrieves documents, classifies them using LLM analysis, and provides a searchable interface through a Next.js web application.
 
 ## Features
