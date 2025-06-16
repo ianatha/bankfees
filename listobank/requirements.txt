@@ -15,4 +15,6 @@ fasttext
 ninja
 wheel
 git+https://github.com/facebookresearch/detectron2.git
-
+plumber
+keras
+tensorflow

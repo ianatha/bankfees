@@ -15,7 +15,7 @@ from meilisearch.models.task import TaskInfo
 from tqdm.auto import tqdm
 from generic_domain_model import GenericDocument
 from domain_config import domain_manager
-from utils import extract_pages_text
+from doc_analysis import load_document_analysis
 
 def wait_for_task(meili: Client, task: TaskInfo, desc: str = "", verbose: bool = True) -> TaskInfo:
   task_result = meili.wait_for_task(task.task_uid)
@@ -58,7 +58,10 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
                   desc=f"Create index '{index_name}'")
     index = meili.get_index(index_name)
     wait_for_task(meili,
-                  index.update_filterable_attributes(["entity"]),
+                  index.update_filterable_attributes([
+                      "entity", "bank", "category", "filename", 
+                      "retrieved_from", "content_hash", "effective_date"
+                  ]),
                   desc=f"Set filterable attributes for index '{index_name}'")
 
   print(
@@ -76,29 +79,44 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
       if not pdf_file.is_file() or pdf_file.name.startswith("_"):
         continue
 
-      pages = extract_pages_text(pdf_file, indent_level=2)
-      document_name_hash = hashlib.md5(pdf_file.stem.encode()).hexdigest()
-      document_mtime = pdf_file.stat().st_mtime_ns
-      # prev_text = ""
+      try:
+        doc_analysis = load_document_analysis(pdf_file, bank=entity_name)
+        pages = doc_analysis.get_pages_as_text(indent_level=2)
+        
+        document_name_hash = hashlib.md5(pdf_file.stem.encode()).hexdigest()
+        document_mtime = pdf_file.stat().st_mtime_ns
 
-      for page_idx in tqdm(range(len(pages)), desc=f"    Converting Pages to GenericDocument in {pdf_file.name}", unit="page", leave=False):
-        content = pages[page_idx]
+        for page_idx in tqdm(range(len(pages)), desc=f"    Converting Pages to GenericDocument in {pdf_file.name}", unit="page", leave=False):
+          content = pages[page_idx]
 
-        doc_id = f"{entity_name}_{document_name_hash}_{document_mtime}_p{page_idx}"
-        doc = GenericDocument(
-            id=doc_id,
-            entity=entity_name,
-            filename=pdf_file.name,
-            path=str(pdf_file),
-            page=page_idx+1,
-            content=content,
-        )
-        buffer.append(doc.model_dump())
+          doc_id = f"{entity_name}_{document_name_hash}_{document_mtime}_p{page_idx}"
+          doc = GenericDocument(
+              id=doc_id,
+              entity=entity_name,
+              filename=pdf_file.name,
+              path=str(pdf_file),
+              page=page_idx+1,
+              content=content,
+              # Include DocumentAnalysis metadata
+              retrieved_from=str(doc_analysis.retrieved_from) if doc_analysis.retrieved_from else None,
+              retrieved_at=doc_analysis.retrieved_at.isoformat() if doc_analysis.retrieved_at else None,
+              retrieved_etag=doc_analysis.retrieved_etag,
+              bank=doc_analysis.bank,
+              content_hash=doc_analysis.content_hash,
+              category=doc_analysis.category,
+              document_title=doc_analysis.document_title,
+              effective_date=doc_analysis.effective_date.isoformat() if doc_analysis.effective_date else None,
+          )
+          buffer.append(doc.model_dump())
 
-        # send batch if full
-        if len(buffer) >= batch_size:
-          tasks.append(index.add_documents(buffer, primary_key="id"))
-          buffer.clear()
+          # send batch if full
+          if len(buffer) >= batch_size:
+            tasks.append(index.add_documents(buffer, primary_key="id"))
+            buffer.clear()
+            
+      except (FileNotFoundError, ValueError) as e:
+        print(f"Warning: Could not load DocumentAnalysis for {pdf_file}: {e}")
+        continue
 
   # index any remaining docs
   if buffer:
@@ -144,7 +162,7 @@ def main():
   parser = argparse.ArgumentParser(
       description="Index bank PDFs into MeiliSearch")
   parser.add_argument(
-      "--root-dir", type=Path, default=Path.cwd() / "data",
+      "--root-dir", type=Path, default=Path.cwd() / "data_new",
       help="Root directory containing entity-named subfolders with PDFs (default: ./data)"
   )
   parser.add_argument(
@@ -156,7 +174,7 @@ def main():
       help="API key for MeiliSearch (or set MEILI_API_KEY env)"
   )
   parser.add_argument(
-      "--index-name", type=str, default="documents",
+      "--index-name", type=str, default="bankfees",
       help="Name of the MeiliSearch index to use or create"
   )
   parser.add_argument(

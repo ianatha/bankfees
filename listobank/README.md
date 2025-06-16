@@ -1,4 +1,15 @@
-# Generic Document Analysis System
+# listobank
+## Comparative pricing analysis for Greek Banks
+
+## To Get Started with Data Analysis (python
+
+brew install anaconda
+/opt/homebrew/anaconda3/bin/conda init zsh
+conda env create -f environment.yml
+
+## To Update the Conda Env
+
+conda env export --name <your_env> --from-history > environment.yml
 
 A flexible, domain-configurable tool for analyzing documents across different industries. Originally designed for analyzing bank fees across major Greek banks, the system now supports any domain through configurable entity and document category definitions. It automatically retrieves documents, classifies them using LLM analysis, and provides a searchable interface through a Next.js web application.
 
@@ -87,9 +98,17 @@ python pdf_retriever.py
 python doc_classification.py
 ```
 
-4. **Index for Search**: Add documents to MeiliSearch index
+4. **Build SQLite Database**: Bundle PDFs and their analyses
 ```bash
-python pdfs_to_meili.py
+python pdfs_to_sqlite.py --root-dir data_new --db-path documents.sqlite
+```
+
+Copy the resulting `documents.sqlite` into the `ui` folder so the
+Next.js application can serve PDFs directly from the database.
+
+5. **Index for Search**: Add documents to MeiliSearch index
+```bash
+python gemini_embeddings_to_meili.py
 ```
 
 ### Web Interface
@@ -116,14 +135,6 @@ The system uses JSON configuration files to define:
 **Banking Domain** (`banking_domain.json`):
 - Entities: Alpha Bank, Attica Bank, Eurobank, NBG, Piraeus Bank
 - Categories: PriceList, InterestRates, PaymentFees, etc.
-
-**Insurance Domain** (create with `configure_domain.py create insurance`):
-- Entities: Allianz, AXA, Generali
-- Categories: Policy, Terms, PremiumSchedule, ClaimsInfo, etc.
-
-**Retail Domain** (create with `configure_domain.py create retail`):
-- Entities: Amazon, Walmart, Target  
-- Categories: ProductCatalog, PriceList, ReturnPolicy, etc.
 
 ## Requirements
 

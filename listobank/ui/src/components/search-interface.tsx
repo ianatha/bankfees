@@ -7,11 +7,7 @@ import { SearchResults } from "@/components/search-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSearchResults } from "@/hooks/use-search-results";
 import { parseSearchInput } from "@/lib/utils";
 import {
@@ -111,6 +107,22 @@ export function SearchInterface() {
       maybePerformSearch(newQuery);
 
       return newCats;
+    });
+  };
+
+  const toggleCategorySelection = (category: string) => {
+    setSelectedCategories((prev) => {
+      const newCategories = prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category];
+
+      const baseQuery = searchQuery.replace(/category:("[^"]+"|\S+)/gi, "").trim();
+      const newQuery = `${baseQuery} ${newCategories.map((c) => `category:${c}`).join(" ")}`.trim();
+
+      setSearchQuery(newQuery);
+      maybePerformSearch(newQuery);
+
+      return newCategories;
     });
   };
 
@@ -218,9 +230,7 @@ export function SearchInterface() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Search className="h-12 w-12 mb-4" />
-            <p className="text-lg">
-              Search and select a result to view the PDF
-            </p>
+            <p className="text-lg">Search and select a result to view the PDF</p>
           </div>
         )}
       </div>

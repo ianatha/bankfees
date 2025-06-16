@@ -1,9 +1,12 @@
+"use server";
+
 import { MeiliSearch } from "meilisearch";
 import {
   MEILI_INDEX,
   ENTITY_FIELD,
   CATEGORY_FIELD,
 } from "@/lib/domain";
+import { uniqBy } from "es-toolkit/array";
 
 // Initialize the MeiliSearch client
 const client = new MeiliSearch({
@@ -29,13 +32,15 @@ interface SearchHit {
   category?: string;
 }
 
-interface Document {
+export interface LibDocument {
   id: string;
   entity: string;
   filename: string;
+  title: string;
   path: string;
   page?: number;
-  category?: string;
+  effective_date?: Date;
+  category: string;
 }
 
 const CONTEXT_LENGTH = 200;
@@ -129,7 +134,7 @@ function extractContextSnippets(content: string, searchTerm: string, maxSnippets
   return snippets.length > 0 ? snippets : [content.substring(0, 200) + "..."];
 }
 
-export async function getAllDocuments(): Promise<Document[]> {
+export async function getAllDocuments(): Promise<LibDocument[]> {
   try {
     // Get all documents with minimal fields
     const results = await index.search("", {
@@ -155,7 +160,23 @@ export async function getAllDocuments(): Promise<Document[]> {
       }
     });
 
-    return Array.from(uniqueDocuments.values());
+    // Use es-toolkit utilities for deduplication and mapping
+    // Assuming es-toolkit is installed and imported as:
+    // import { uniqBy, map } from "es-toolkit/array";
+
+    // Deduplicate by 'path' and map to Document type
+    const uniqueDocuments = uniqBy(allDocuments.results, (doc: any) => doc.path);
+
+    return uniqueDocuments.map((hit: any) => ({
+      id: hit.id,
+      bank: hit.bank,
+      filename: hit.filename,
+      path: hit.path,
+      page: hit.page,
+      title: hit.document_title ?? hit.filename,
+      effective_date: hit.effective_date,
+      category: hit.category,
+    }));
   } catch (error) {
     console.error("MeiliSearch error:", error);
     throw new Error("Failed to fetch documents");
