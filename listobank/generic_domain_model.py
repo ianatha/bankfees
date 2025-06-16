@@ -42,6 +42,19 @@ class GenericDocument(BaseModel):
     path: str = Field(..., description="Full path to the PDF file")
     page: int = Field(..., description="Page number within the PDF")
     content: str = Field(..., description="Text content of the page")
+    embedding: list[float] | None = Field(
+        default=None,
+        description="Embedding vector for the page content",
+    )
+    # DocumentAnalysis metadata fields
+    retrieved_from: str | None = Field(default=None, description="URL from which the document was retrieved")
+    retrieved_at: str | None = Field(default=None, description="ISO timestamp of when the document was retrieved")
+    retrieved_etag: str | None = Field(default=None, description="ETag of the document at the time of retrieval")
+    bank: str | None = Field(default=None, description="Bank name from DocumentAnalysis")
+    content_hash: str | None = Field(default=None, description="Hash of the source file for integrity checks")
+    category: str | None = Field(default=None, description="Document category")
+    document_title: str | None = Field(default=None, description="Title of the document")
+    effective_date: str | None = Field(default=None, description="ISO date when the document becomes effective")
 
 
 # Helper functions for backward compatibility and easy migration
