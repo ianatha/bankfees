@@ -93,9 +93,9 @@ python pdf_retriever.py
 python doc_classification.py
 ```
 
-4. **Index for Search**: Add documents to MeiliSearch index
+4. **Index for Search**: Add documents and Gemini embeddings to MeiliSearch
 ```bash
-python pdfs_to_meili.py
+python gemini_embeddings_to_meili.py
 ```
 
 ### Web Interface

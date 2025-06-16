@@ -42,6 +42,10 @@ class GenericDocument(BaseModel):
     path: str = Field(..., description="Full path to the PDF file")
     page: int = Field(..., description="Page number within the PDF")
     content: str = Field(..., description="Text content of the page")
+    embedding: list[float] | None = Field(
+        default=None,
+        description="Embedding vector for the page content",
+    )
     # DocumentAnalysis metadata fields
     retrieved_from: str | None = Field(default=None, description="URL from which the document was retrieved")
     retrieved_at: str | None = Field(default=None, description="ISO timestamp of when the document was retrieved")
