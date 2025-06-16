@@ -1,7 +1,7 @@
 import { SearchInterface } from "@/components/search-interface";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Library, LibraryIcon, SearchIcon } from "lucide-react";
+import { DatabaseIcon, Library, LibraryIcon, SearchIcon } from "lucide-react";
 import { BankHeader } from "@/components/bank-header";
 import { BankLogo } from "@/components/bank-logo";
 import { ALL_ENTITIES } from "@/lib/domain";
@@ -20,8 +20,8 @@ export default function Home() {
         <div className="flex flex-col w-full items-center gap-2">
           <div className="w-96 text-center">
             <Balancer>
-              Έχουμε <span className="font-bold">κατεβάσει, ταξινομήσει και τιθασεύσει</span> 1000+ σελίδες τραπεζικών όρων συναλλαγών και τιμολογιακών
-              πρακτικών από τις εξής τράπεζες:
+              Έχουμε <span className="font-bold">κατεβάσει, ταξινομήσει και τιθασεύσει</span> 1000+
+              σελίδες τραπεζικών όρων συναλλαγών και τιμολογιακών πρακτικών από τις εξής τράπεζες:
             </Balancer>
           </div>
           <div className="flex gap-3">
@@ -41,6 +41,12 @@ export default function Home() {
             <Button variant="outline" className="flex flex-col items-center gap-2 h-32 w-32">
               <LibraryIcon className="!h-8 !w-8" />
               Βιβλιοθήκη
+            </Button>
+          </Link>
+          <Link href="/sources">
+            <Button variant="outline" className="flex flex-col items-center gap-2 h-32 w-32">
+              <DatabaseIcon className="!h-8 !w-8" />
+              Πηγές
             </Button>
           </Link>
         </div>
