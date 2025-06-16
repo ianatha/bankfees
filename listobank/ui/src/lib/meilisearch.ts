@@ -1,4 +1,9 @@
 import { MeiliSearch } from "meilisearch";
+import {
+  MEILI_INDEX,
+  ENTITY_FIELD,
+  CATEGORY_FIELD,
+} from "@/lib/domain";
 
 // Initialize the MeiliSearch client
 const client = new MeiliSearch({
@@ -8,12 +13,12 @@ const client = new MeiliSearch({
   apiKey: process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY || "7FmUz2qYKDjjbhaZ3LkjNvNDkkhMUfew",
 });
 
-// The index where bank PDFs are stored (matching your Python script)
-const index = client.index("bankfees");
+// The index where PDFs are stored
+const index = client.index(MEILI_INDEX);
 
 interface SearchHit {
   id: string;
-  bank: string;
+  entity: string;
   filename: string;
   path: string;
   page: number;
@@ -21,14 +26,16 @@ interface SearchHit {
   highlight: string;
   contextSnippets: string[];
   feeAmount?: string;
+  category?: string;
 }
 
 interface Document {
   id: string;
-  bank: string;
+  entity: string;
   filename: string;
   path: string;
   page?: number;
+  category?: string;
 }
 
 const CONTEXT_LENGTH = 200;
@@ -76,7 +83,7 @@ export async function searchMeiliSearch(
 
       return {
         id: hit.id,
-        bank: hit.bank,
+        entity: hit[ENTITY_FIELD],
         filename: hit.filename,
         path: hit.path,
         page: hit.page,
@@ -84,6 +91,7 @@ export async function searchMeiliSearch(
         highlight,
         contextSnippets,
         feeAmount,
+        category: hit[CATEGORY_FIELD],
       };
     });
   } catch (error) {
@@ -126,7 +134,7 @@ export async function getAllDocuments(): Promise<Document[]> {
     // Get all documents with minimal fields
     const results = await index.search("", {
       limit: 1000,
-      attributesToRetrieve: ["id", "bank", "filename", "path", "page"],
+      attributesToRetrieve: ["id", ENTITY_FIELD, CATEGORY_FIELD, "filename", "path", "page"],
     });
 
     // Process and deduplicate documents by path (since each page is a separate document)
@@ -138,10 +146,11 @@ export async function getAllDocuments(): Promise<Document[]> {
       if (!uniqueDocuments.has(documentPath)) {
         uniqueDocuments.set(documentPath, {
           id: hit.id,
-          bank: hit.bank,
+          entity: hit[ENTITY_FIELD],
           filename: hit.filename,
           path: hit.path,
           page: hit.page,
+          category: hit[CATEGORY_FIELD],
         });
       }
     });

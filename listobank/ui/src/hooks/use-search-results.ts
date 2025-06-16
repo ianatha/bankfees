@@ -5,22 +5,23 @@ import { parseSearchInput } from "@/lib/utils";
 import { useState } from "react";
 
 interface SearchResult {
-  bankName: string;
+  entityName: string;
   documentName: string;
   documentUrl: string;
   pageNumber: number;
   highlight: string;
   contextSnippets: string[];
   feeAmount?: string;
+  category?: string;
 }
 
-interface BankGroup {
-  bankName: string;
+interface EntityGroup {
+  entityName: string;
   results: SearchResult[];
 }
 
 export function useSearchResults() {
-  const [results, setResults] = useState<BankGroup[]>([]);
+  const [results, setResults] = useState<EntityGroup[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,35 +40,37 @@ export function useSearchResults() {
     try {
       const searchResults = await searchMeiliSearch(query, filters);
 
-      // Group results by bank
-      const groupedByBank: Record<string, SearchResult[]> = {};
+      // Group results by entity
+      const groupedByEntity: Record<string, SearchResult[]> = {};
 
       searchResults.forEach((hit) => {
-        if (!groupedByBank[hit.bank]) {
-          groupedByBank[hit.bank] = [];
+        const key = hit.entity;
+        if (!groupedByEntity[key]) {
+          groupedByEntity[key] = [];
         }
 
-        groupedByBank[hit.bank].push({
-          bankName: hit.bank,
+        groupedByEntity[key].push({
+          entityName: hit.entity,
           documentName: hit.filename,
           documentUrl: hit.path,
           pageNumber: hit.page,
           highlight: hit.highlight,
           contextSnippets: hit.contextSnippets,
           feeAmount: hit.feeAmount,
+          category: hit.category,
         });
       });
 
       // Convert to array format
-      const bankGroups: BankGroup[] = Object.keys(groupedByBank).map((bankName) => ({
-        bankName,
-        results: groupedByBank[bankName],
+      const entityGroups: EntityGroup[] = Object.keys(groupedByEntity).map((name) => ({
+        entityName: name,
+        results: groupedByEntity[name],
       }));
 
-      // Sort banks alphabetically
-      bankGroups.sort((a, b) => a.bankName.localeCompare(b.bankName));
+      // Sort entities alphabetically
+      entityGroups.sort((a, b) => a.entityName.localeCompare(b.entityName));
 
-      setResults(bankGroups);
+      setResults(entityGroups);
     } catch (err) {
       console.error("Search error:", err);
       setError("An error occurred while searching. Please try again.");

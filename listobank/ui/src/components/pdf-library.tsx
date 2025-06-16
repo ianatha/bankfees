@@ -8,58 +8,62 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllDocuments } from "@/lib/meilisearch";
+import {
+  ENTITY_FIELD,
+  LIBRARY_TOP_LEVEL_FIELD,
+} from "@/lib/domain";
 import { ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
 interface Document {
   id: string;
-  bank: string;
+  entity: string;
+  category: string;
   filename: string;
   path: string;
   page?: number;
 }
 
-interface BankDocuments {
-  bankName: string;
+interface GroupDocuments {
+  groupName: string;
   documents: Document[];
 }
 
 export function PdfLibrary() {
-  const [documents, setDocuments] = useState<BankDocuments[]>([]);
+  const [documents, setDocuments] = useState<GroupDocuments[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [openBanks, setOpenBanks] = useState<string[]>([]);
+  const [openGroups, setOpenGroups] = useState<string[]>([]);
+  const [groupField, setGroupField] = useState(LIBRARY_TOP_LEVEL_FIELD);
 
   useEffect(() => {
     async function fetchDocuments() {
       try {
         const docs = await getAllDocuments();
 
-        // Group documents by bank
-        const groupedByBank: Record<string, Document[]> = {};
+        const grouped: Record<string, Document[]> = {};
 
         docs.forEach((doc) => {
-          if (!groupedByBank[doc.bank]) {
-            groupedByBank[doc.bank] = [];
+          const key = (doc as any)[groupField];
+          if (!grouped[key]) {
+            grouped[key] = [];
           }
 
-          // Check if document already exists in the array (by path)
-          const existingDoc = groupedByBank[doc.bank].find((d) => d.path === doc.path);
+          const existingDoc = grouped[key].find((d) => d.path === doc.path);
           if (!existingDoc) {
-            groupedByBank[doc.bank].push(doc);
+            grouped[key].push(doc);
           }
         });
 
-        // Convert to array format and sort banks alphabetically
-        const bankDocuments: BankDocuments[] = Object.keys(groupedByBank)
+        const groupedDocuments: GroupDocuments[] = Object.keys(grouped)
           .sort()
-          .map((bankName) => ({
-            bankName,
-            documents: groupedByBank[bankName].sort((a, b) => a.filename.localeCompare(b.filename)),
+          .map((groupName) => ({
+            groupName,
+            documents: grouped[groupName].sort((a, b) => a.filename.localeCompare(b.filename)),
           }));
 
-        setDocuments(bankDocuments);
+        setDocuments(groupedDocuments);
       } catch (err) {
         console.error("Error fetching documents:", err);
         setError("Failed to load documents. Please try again later.");
@@ -69,11 +73,11 @@ export function PdfLibrary() {
     }
 
     fetchDocuments();
-  }, []);
+  }, [groupField]);
 
-  const toggleBank = (bankName: string) => {
-    setOpenBanks((prev) =>
-      prev.includes(bankName) ? prev.filter((name) => name !== bankName) : [...prev, bankName]
+  const toggleGroup = (name: string) => {
+    setOpenGroups((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
   };
 
@@ -101,32 +105,42 @@ export function PdfLibrary() {
     <div>
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4 w-full">
-          <h2 className="text-lg font-semibold">Τράπεζες ({documents.length})</h2>
+          <h2 className="text-lg font-semibold">
+            {groupField === ENTITY_FIELD ? "Τράπεζες" : "Κατηγορίες"} ({documents.length})
+          </h2>
+          <select
+            value={groupField}
+            onChange={(e) => setGroupField(e.target.value)}
+            className="border rounded px-2 py-1 text-sm mr-4"
+          >
+            <option value={ENTITY_FIELD}>Group by {ENTITY_FIELD}</option>
+            <option value={CATEGORY_FIELD}>Group by {CATEGORY_FIELD}</option>
+          </select>
           <Button
             variant="outline"
             size="sm"
             onClick={() =>
-              setOpenBanks(
-                openBanks.length === documents.length ? [] : documents.map((b) => b.bankName)
+              setOpenGroups(
+                openGroups.length === documents.length ? [] : documents.map((b) => b.groupName)
               )
             }
           >
-            {openBanks.length === documents.length ? (
+            {openGroups.length === documents.length ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
-            {openBanks.length === documents.length ? "Σύμπτυξη" : "Εμφάνιση Όλων"}
+            {openGroups.length === documents.length ? "Σύμπτυξη" : "Εμφάνιση Όλων"}
           </Button>
         </div>
 
         <ScrollArea className="h-[calc(100vh-12rem)]">
           <div className="space-y-4">
-            {documents.map((bank) => (
+            {documents.map((group) => (
               <Collapsible
-                key={bank.bankName}
-                open={openBanks.includes(bank.bankName)}
-                onOpenChange={() => toggleBank(bank.bankName)}
+                key={group.groupName}
+                open={openGroups.includes(group.groupName)}
+                onOpenChange={() => toggleGroup(group.groupName)}
                 className="border rounded-md overflow-hidden bg-white"
               >
                 <CollapsibleTrigger asChild>
@@ -135,21 +149,23 @@ export function PdfLibrary() {
                     className="w-full flex justify-between items-center p-4 h-auto"
                   >
                     <div className="flex items-center gap-3 font-medium">
-                      {openBanks.includes(bank.bankName) ? (
+                      {openGroups.includes(group.groupName) ? (
                         <ChevronDown className="h-4 w-4" />
                       ) : (
                         <ChevronRight className="h-4 w-4" />
                       )}
-                      <BankLogo bankName={bank.bankName} size="md" className="shadow-sm" />
-                      {bank.bankName}
+                      {groupField === ENTITY_FIELD && (
+                        <BankLogo bankName={group.groupName} size="md" className="shadow-sm" />
+                      )}
+                      {group.groupName}
                     </div>
-                    <Badge variant="secondary">{bank.documents.length} έγγραφα</Badge>
-                  </Button>
-                </CollapsibleTrigger>
+                    <Badge variant="secondary">{group.documents.length} έγγραφα</Badge>
+                </Button>
+              </CollapsibleTrigger>
                 <CollapsibleContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-                    {bank.documents.map((doc) => (
-                      <DocumentCard key={doc.id} document={doc} />
+                    {group.documents.map((doc) => (
+                      <DocumentCard key={doc.id} document={doc} groupField={groupField} />
                     ))}
                   </div>
                 </CollapsibleContent>
@@ -162,7 +178,7 @@ export function PdfLibrary() {
   );
 }
 
-function DocumentCard({ document }: { document: Document }) {
+function DocumentCard({ document, groupField }: { document: Document; groupField: string }) {
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow">
       <CardContent className="p-0">
@@ -176,7 +192,9 @@ function DocumentCard({ document }: { document: Document }) {
             </h3>
             <p className="text-xs text-slate-500">PDF Document</p>
           </div>
-          <BankLogo bankName={document.bank} size="sm" />
+          {groupField !== ENTITY_FIELD && (
+            <BankLogo bankName={document.entity} size="sm" />
+          )}
         </div>
         <div className="p-4">
           <div className="flex justify-between items-center">

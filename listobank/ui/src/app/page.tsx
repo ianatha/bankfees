@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Library, LibraryIcon, SearchIcon } from "lucide-react";
 import { BankHeader } from "@/components/bank-header";
 import { BankLogo } from "@/components/bank-logo";
+import { ALL_ENTITIES } from "@/lib/domain";
 import Balancer from "react-wrap-balancer";
 
 export default function Home() {
@@ -24,11 +25,9 @@ export default function Home() {
             </Balancer>
           </div>
           <div className="flex gap-3">
-            <BankLogo bankName="alpha" size="md" />
-            <BankLogo bankName="attica" size="md" />
-            <BankLogo bankName="eurobank" size="md" />
-            <BankLogo bankName="nbg" size="md" />
-            <BankLogo bankName="piraeus" size="md" />
+            {ALL_ENTITIES.map((bank) => (
+              <BankLogo key={bank} bankName={bank} size="md" />
+            ))}
           </div>
         </div>
         <div className="flex flex-row justify-center items-center gap-4">

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BankLogo } from "./bank-logo";
+import { APP_NAME } from "@/lib/domain";
 
 interface BankHeaderProps {
   title: string;
@@ -10,7 +11,7 @@ export function BankHeader({ title, subtitle }: BankHeaderProps) {
   return (
     <div className="flex items-center gap-6 mb-8">
       <Link href="/">
-        <div className="font-mono text-2xl font-bold border-2 border-black p-4">LISTOBANK</div>
+        <div className="font-mono text-2xl font-bold border-2 border-black p-4">{APP_NAME}</div>
       </Link>
       <div>
         <h1 className="text-3xl font-bold">{title}</h1>

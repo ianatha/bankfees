@@ -10,23 +10,24 @@ import { ChevronDown, ChevronRight, FileText, MoreHorizontal } from "lucide-reac
 import { useState } from "react";
 
 interface SearchResult {
-  bankName: string;
+  entityName: string;
   documentName: string;
   documentUrl: string;
   pageNumber: number;
   highlight: string;
   contextSnippets: string[];
   feeAmount?: string;
+  category?: string;
 }
 
-interface BankGroup {
-  bankName: string;
+interface EntityGroup {
+  entityName: string;
   results: SearchResult[];
 }
 
 interface SearchResultsProps {
   updating?: boolean;
-  results: BankGroup[];
+  results: EntityGroup[];
   onResultClick: (result: SearchResult) => void;
   searchQuery: string; // original user input
   highlightQuery: string; // parsed query used for highlighting
@@ -39,12 +40,12 @@ export function SearchResults({
   searchQuery,
   highlightQuery,
 }: SearchResultsProps) {
-  const [openBanks, setOpenBanks] = useState<string[]>([]);
+  const [openEntities, setOpenEntities] = useState<string[]>([]);
   const [expandedResults, setExpandedResults] = useState<string[]>([]);
 
-  const toggleBank = (bankName: string) => {
-    setOpenBanks((prev) =>
-      prev.includes(bankName) ? prev.filter((name) => name !== bankName) : [...prev, bankName]
+  const toggleEntity = (entity: string) => {
+    setOpenEntities((prev) =>
+      prev.includes(entity) ? prev.filter((name) => name !== entity) : [...prev, entity]
     );
   };
 
@@ -72,17 +73,17 @@ export function SearchResults({
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-800"></div>
         )}
         <Badge variant="outline">
-          {results.reduce((acc, bank) => acc + bank.results.length, 0)} matches
+          {results.reduce((acc, g) => acc + g.results.length, 0)} matches
         </Badge>
       </div>
 
       <ScrollArea className="h-[calc(100vh-20rem)] pr-4">
         <div className="space-y-4">
-          {results.map((bank) => (
+          {results.map((group) => (
             <Collapsible
-              key={bank.bankName}
-              open={openBanks.includes(bank.bankName)}
-              onOpenChange={() => toggleBank(bank.bankName)}
+              key={group.entityName}
+              open={openEntities.includes(group.entityName)}
+              onOpenChange={() => toggleEntity(group.entityName)}
               className="border rounded-md overflow-hidden"
             >
               <CollapsibleTrigger asChild>
@@ -91,20 +92,20 @@ export function SearchResults({
                   className="w-full flex justify-between items-center p-3 h-auto"
                 >
                   <div className="flex items-center gap-2 font-medium">
-                    {openBanks.includes(bank.bankName) ? (
+                    {openEntities.includes(group.entityName) ? (
                       <ChevronDown className="h-4 w-4" />
                     ) : (
                       <ChevronRight className="h-4 w-4" />
                     )}
-                    <BankLogo bankName={bank.bankName} size="sm" />
-                    {bank.bankName}
+                    <BankLogo bankName={group.entityName} size="sm" />
+                    {group.entityName}
                   </div>
-                  <Badge variant="secondary">{bank.results.length}</Badge>
+                  <Badge variant="secondary">{group.results.length}</Badge>
                 </Button>
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="divide-y">
-                  {bank.results.map((result, idx) => {
+                  {group.results.map((result, idx) => {
                     const resultId = `${result.documentName}-${result.pageNumber}-${idx}`;
                     const isExpanded = expandedResults.includes(resultId);
 
