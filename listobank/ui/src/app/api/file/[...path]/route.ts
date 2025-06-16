@@ -8,7 +8,10 @@ export async function GET(request: Request, { params }: { params: { path?: strin
   const pathSegments = params.path || [];
   const relativePath = Array.isArray(pathSegments) ? pathSegments.join(path.sep) : '';
 
-  if (relativePath.includes('..')) {
+  const baseDirectory = path.join(process.cwd(), 'files'); // Define the intended base directory
+  const normalizedPath = path.resolve(baseDirectory, relativePath); // Normalize the path
+
+  if (!normalizedPath.startsWith(baseDirectory)) { // Validate the path
     return NextResponse.json({ error: 'Invalid file path' }, { status: 400 });
   }
 
