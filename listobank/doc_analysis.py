@@ -37,6 +37,9 @@ class DocumentAnalysis(BaseModel):
   pages_text: list[str] | None = Field(
       default=None, description="text content of each page in the document"
   )
+  page_embeddings: list[list[float]] | None = Field(
+      default=None, description="embedding vectors for each page in pages_text"
+  )
 
   def get_pages_as_text(self, indent_level: int = 0) -> list[str]:
     """

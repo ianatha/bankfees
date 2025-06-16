@@ -42,6 +42,10 @@ class GenericDocument(BaseModel):
     path: str = Field(..., description="Full path to the PDF file")
     page: int = Field(..., description="Page number within the PDF")
     content: str = Field(..., description="Text content of the page")
+    embedding: list[float] | None = Field(
+        default=None,
+        description="Embedding vector for the page content",
+    )
 
 
 # Helper functions for backward compatibility and easy migration
