@@ -6,7 +6,7 @@ import {
   ENTITY_FIELD,
   CATEGORY_FIELD,
 } from "@/lib/domain";
-import { uniqBy } from "es-toolkit/array";
+import { uniq, uniqBy } from "es-toolkit/array";
 
 // Initialize the MeiliSearch client
 const client = new MeiliSearch({
@@ -137,45 +137,47 @@ function extractContextSnippets(content: string, searchTerm: string, maxSnippets
 export async function getAllDocuments(): Promise<LibDocument[]> {
   try {
     // Get all documents with minimal fields
-    const results = await index.search("", {
-      limit: 1000,
-      attributesToRetrieve: ["id", ENTITY_FIELD, CATEGORY_FIELD, "filename", "path", "page"],
+    
+    const results = await index.getDocuments({
+      limit: 5000,
+      fields: ["id", ENTITY_FIELD, CATEGORY_FIELD, "filename", "path", "page", "document_title", "effective_date"],
     });
 
+     const allDocuments = results.results;
     // Process and deduplicate documents by path (since each page is a separate document)
-    const uniqueDocuments = new Map<string, Document>();
+    // const uniqueDocuments = new Map<string, Document>();
 
-    results.hits.forEach((hit: any) => {
-      const documentPath = hit.path;
+    // results.hits.forEach((hit: any) => {
+    //   const documentPath = hit.path;
 
-      if (!uniqueDocuments.has(documentPath)) {
-        uniqueDocuments.set(documentPath, {
-          id: hit.id,
-          entity: hit[ENTITY_FIELD],
-          filename: hit.filename,
-          path: hit.path,
-          page: hit.page,
-          category: hit[CATEGORY_FIELD],
-        });
-      }
-    });
+    //   if (!uniqueDocuments.has(documentPath)) {
+    //     uniqueDocuments.set(documentPath, {
+    //       id: hit.id,
+    //       entity: hit[ENTITY_FIELD],
+    //       filename: hit.filename,
+    //       path: hit.path,
+    //       page: hit.page,
+    //       category: hit[CATEGORY_FIELD],
+    //     });
+    //   }
+    // });
 
     // Use es-toolkit utilities for deduplication and mapping
     // Assuming es-toolkit is installed and imported as:
     // import { uniqBy, map } from "es-toolkit/array";
 
     // Deduplicate by 'path' and map to Document type
-    const uniqueDocuments = uniqBy(allDocuments.results, (doc: any) => doc.path);
+    const uniqueDocuments = uniqBy(allDocuments, (doc: any) => doc.path);
 
     return uniqueDocuments.map((hit: any) => ({
       id: hit.id,
-      bank: hit.bank,
+      entity: hit[ENTITY_FIELD],
       filename: hit.filename,
       path: hit.path,
       page: hit.page,
       title: hit.document_title ?? hit.filename,
       effective_date: hit.effective_date,
-      category: hit.category,
+      category: hit[CATEGORY_FIELD],
     }));
   } catch (error) {
     console.error("MeiliSearch error:", error);

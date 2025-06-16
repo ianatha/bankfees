@@ -7,27 +7,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getAllDocuments } from "@/lib/meilisearch";
+import { getAllDocuments, LibDocument } from "@/lib/meilisearch";
 import {
+  CATEGORY_FIELD,
   ENTITY_FIELD,
   LIBRARY_TOP_LEVEL_FIELD,
 } from "@/lib/domain";
-import { ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileText } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronRight, ChevronUp, ExternalLink, FileIcon, FileText, FilterIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { groupBy } from "es-toolkit/array";
 
-interface Document {
-  id: string;
-  entity: string;
-  category: string;
-  filename: string;
-  path: string;
-  page?: number;
-}
+// interface Document {
+//   id: string;
+//   entity: string;
+//   category: string;
+//   filename: string;
+//   path: string;
+//   page?: number;
+// }
 
 interface GroupDocuments {
   groupName: string;
-  documents: Document[];
+  documents: LibDocument[];
 }
 
 export function PdfLibrary() {
@@ -42,19 +44,7 @@ export function PdfLibrary() {
       try {
         const docs = await getAllDocuments();
 
-        const grouped: Record<string, Document[]> = {};
-
-        docs.forEach((doc) => {
-          const key = (doc as any)[groupField];
-          if (!grouped[key]) {
-            grouped[key] = [];
-          }
-
-          const existingDoc = grouped[key].find((d) => d.path === doc.path);
-          if (!existingDoc) {
-            grouped[key].push(doc);
-          }
-        });
+        const grouped: Record<string, LibDocument[]> = groupBy(docs, (item) => (groupField === ENTITY_FIELD ? item.entity : item.category));
 
         const groupedDocuments: GroupDocuments[] = Object.keys(grouped)
           .sort()
@@ -80,17 +70,6 @@ export function PdfLibrary() {
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
   };
-
-  // Filter documents based on selected category
-  const filteredDocuments = documents
-    .map((bank) => ({
-      ...bank,
-      documents:
-        selectedCategory === "all"
-          ? bank.documents
-          : bank.documents.filter((doc) => doc.category === selectedCategory),
-    }))
-    .filter((bank) => bank.documents.length > 0);
 
   if (isLoading) {
     return (
@@ -130,6 +109,19 @@ export function PdfLibrary() {
     return <div className="text-red-500 p-4 text-center">{error}</div>;
   }
 
+  /*
+            {categories.map((category) => (
+            <Button
+              key={category}
+              variant={selectedCategory === category ? "default" : "outline"}
+              size="sm"
+              onClick={() => setSelectedCategory(category)}
+              className="whitespace-nowrap"
+            >
+              {category}
+            </Button>
+          ))}*/
+
   return (
     <div>
       <div className="mb-6">
@@ -161,17 +153,7 @@ export function PdfLibrary() {
             )}
             {openGroups.length === documents.length ? "Σύμπτυξη" : "Εμφάνιση Όλων"}
           </Button>
-          {categories.map((category) => (
-            <Button
-              key={category}
-              variant={selectedCategory === category ? "default" : "outline"}
-              size="sm"
-              onClick={() => setSelectedCategory(category)}
-              className="whitespace-nowrap"
-            >
-              {category}
-            </Button>
-          ))}
+
         </div>
 
         <ScrollArea className="h-[calc(100vh-12rem)]">
@@ -218,7 +200,7 @@ export function PdfLibrary() {
   );
 }
 
-function DocumentCard({ document, groupField }: { document: Document; groupField: string }) {
+function DocumentCard({ document, groupField }: { document: LibDocument; groupField: string }) {
   return (
     <Card className="overflow-hidden hover:shadow-md transition-shadow bg-slate-100 p-4 ">
       <CardContent className="flex items-center gap-3">
@@ -229,7 +211,7 @@ function DocumentCard({ document, groupField }: { document: Document; groupField
           <h3 className="font-medium text-sm truncate" title={document.title}>
             {document.title}
           </h3>
-          <p className="text-sm text-slate-500 flex flex-row items-center gap-4">
+          {/* <p className="text-sm text-slate-500 flex flex-row items-center gap-4">
             {document.effective_date && (
               <span className="flex flex-row items-center gap-1">
                 <CalendarIcon className="inline h-4 w-4 text-slate-500" />
@@ -241,12 +223,12 @@ function DocumentCard({ document, groupField }: { document: Document; groupField
             <span className="flex flex-row items-center gap-1">
               <FileIcon className="inline h-4 w-4 text-slate-500" />
               {document.filename}
-            </h3>
+            </span>
             <p className="text-xs text-slate-500">PDF Document</p>
           </div>
           {groupField !== ENTITY_FIELD && (
             <BankLogo bankName={document.entity} size="sm" />
-          )}
+          )} */}
         </div>
         <div>
           <Link
@@ -268,7 +250,7 @@ function DocumentCard({ document, groupField }: { document: Document; groupField
             <ExternalLink className="h-3 w-3" />
           </a>
         </div>
-        <BankLogo bankName={document.bank} size="sm" />
+        <BankLogo bankName={document.entity} size="sm" />
       </CardContent>
     </Card>
   );

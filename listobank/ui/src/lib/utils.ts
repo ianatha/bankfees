@@ -47,14 +47,5 @@ export function parseSearchInput(input: string): ParsedSearch {
     query = query.replace(categoryRegex, "").replace(/\s+/g, " ")
   }
 
-  const categoryRegex = /category:("[^"]+"|\S+)/gi
-  const categoryMatches = [...input.matchAll(categoryRegex)]
-  if (categoryMatches.length > 0) {
-    const categories = categoryMatches.map((m) => m[1].replace(/^"|"$/g, ""))
-    const filter = categories.map((c) => `category = "${c}"`).join(" OR ")
-    filters.push(filter)
-    query = query.replace(categoryRegex, "").replace(/\s+/g, " ")
-  }
-
   return { query: query.trim(), filters }
 }

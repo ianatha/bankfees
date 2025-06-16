@@ -110,21 +110,21 @@ export function SearchInterface() {
     });
   };
 
-  const toggleCategorySelection = (category: string) => {
-    setSelectedCategories((prev) => {
-      const newCategories = prev.includes(category)
-        ? prev.filter((c) => c !== category)
-        : [...prev, category];
+  // const toggleCategorySelection = (category: string) => {
+  //   setSelectedCategories((prev) => {
+  //     const newCategories = prev.includes(category)
+  //       ? prev.filter((c) => c !== category)
+  //       : [...prev, category];
 
-      const baseQuery = searchQuery.replace(/category:("[^"]+"|\S+)/gi, "").trim();
-      const newQuery = `${baseQuery} ${newCategories.map((c) => `category:${c}`).join(" ")}`.trim();
+  //     const baseQuery = searchQuery.replace(/category:("[^"]+"|\S+)/gi, "").trim();
+  //     const newQuery = `${baseQuery} ${newCategories.map((c) => `category:${c}`).join(" ")}`.trim();
 
-      setSearchQuery(newQuery);
-      maybePerformSearch(newQuery);
+  //     setSearchQuery(newQuery);
+  //     maybePerformSearch(newQuery);
 
-      return newCategories;
-    });
-  };
+  //     return newCategories;
+  //   });
+  // };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
