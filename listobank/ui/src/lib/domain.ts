@@ -21,8 +21,6 @@ export const ALL_CATEGORIES = [
 // Default grouping field for the PDF library page
 export const LIBRARY_TOP_LEVEL_FIELD = ENTITY_FIELD;
 
-export const DATA_PATH_PREFIX = "/Users/iwa/ekpizo/bankfees/data/";
-
 export const MEILI_INDEX = "bankfees";
 
 export const ENTITY_LOGOS: Record<string, string> = {

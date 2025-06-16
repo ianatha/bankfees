@@ -15,7 +15,6 @@ import {
   ALL_CATEGORIES,
   ENTITY_SEARCH_KEY,
   CATEGORY_SEARCH_KEY,
-  DATA_PATH_PREFIX,
 } from "@/lib/domain";
 import { Filter, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
@@ -218,10 +217,7 @@ export function SearchInterface() {
       <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-12rem)] min-h-[500px]">
         {selectedResult ? (
           <PdfViewer
-            documentUrl={selectedResult.documentUrl.replace(
-              DATA_PATH_PREFIX,
-              "/api/file/",
-            )}
+            documentUrl={"/api/file/"  +selectedResult.documentUrl}
             pageNumber={selectedResult.pageNumber}
             searchTerm={highlightQuery}
             highlight={selectedResult.highlight}

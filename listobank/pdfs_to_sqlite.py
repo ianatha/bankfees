@@ -54,13 +54,13 @@ def main() -> None:
     parser.add_argument(
         "--root-dir",
         type=Path,
-        default=Path.cwd(),
+        default=Path.cwd() / "data_new",
         help="Root directory to search for PDF files (default: current directory)",
     )
     parser.add_argument(
         "--db-path",
         type=Path,
-        default=Path("documents.sqlite"),
+        default=Path.cwd() / "ui" / Path("documents.sqlite"),
         help="Path to output SQLite database file (default: ./documents.sqlite)",
     )
     args = parser.parse_args()
