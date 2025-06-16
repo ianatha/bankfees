@@ -89,7 +89,7 @@ def index_pdfs(meili: Client, root_dir: Path, index_name: str, batch_size: int =
             id=doc_id,
             entity=entity_name,
             filename=pdf_file.name,
-            path=str(pdf_file),
+            path=str(pdf_file.relative_to(root_dir)),
             page=page_idx+1,
             content=content,
         )

@@ -87,7 +87,15 @@ python pdf_retriever.py
 python doc_classification.py
 ```
 
-4. **Index for Search**: Add documents to MeiliSearch index
+4. **Build SQLite Database**: Bundle PDFs and their analyses
+```bash
+python pdfs_to_sqlite.py --root-dir data_new --db-path documents.sqlite
+```
+
+Copy the resulting `documents.sqlite` into the `ui` folder so the
+Next.js application can serve PDFs directly from the database.
+
+5. **Index for Search**: Add documents to MeiliSearch index
 ```bash
 python pdfs_to_meili.py
 ```
