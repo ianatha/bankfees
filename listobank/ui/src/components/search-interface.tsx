@@ -10,16 +10,23 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSearchResults } from "@/hooks/use-search-results";
 import { parseSearchInput } from "@/lib/utils";
+import {
+  ALL_ENTITIES,
+  ALL_CATEGORIES,
+  ENTITY_SEARCH_KEY,
+  CATEGORY_SEARCH_KEY,
+  DATA_PATH_PREFIX,
+} from "@/lib/domain";
 import { Filter, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function SearchInterface() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+  const [selectedEntities, setSelectedEntities] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedResult, setSelectedResult] = useState<{
-    bankName: string;
+    entityName: string;
     documentUrl: string;
     pageNumber: number;
     highlight: string;
@@ -28,24 +35,15 @@ export function SearchInterface() {
   const { results, isLoading, error, performSearch } = useSearchResults();
   const searchParams = useSearchParams();
 
-  const allBanks = ["alpha", "attica", "eurobank", "nbg", "piraeus"];
-  const allCategories = [
-    "PriceList",
-    "CustomerGuide",
-    "DeltioPliroforisisPeriTelon",
-    "Disclosure",
-    "GeneralTermsContract",
-    "InterestRates",
-    "PaymentFees",
-    "PriceListExclusive",
-  ];
+  const allEntities = ALL_ENTITIES;
+  const allCategories = ALL_CATEGORIES;
 
   useEffect(() => {
     // Check if there's a document parameter in the URL
     const documentPath = searchParams.get("document");
     if (documentPath) {
       setSelectedResult({
-        bankName: "",
+        entityName: "",
         documentUrl: documentPath,
         pageNumber: 1,
         highlight: "",
@@ -53,9 +51,14 @@ export function SearchInterface() {
     }
   }, [searchParams]);
 
-  const extractBanks = (input: string) => {
-    const bankRegex = /bank:("[^"]+"|\S+)/gi;
-    return [...input.matchAll(bankRegex)].map((m) => m[1].replace(/^"|"$/g, ""));
+  const extractEntities = (input: string) => {
+    const regex = new RegExp(`${ENTITY_SEARCH_KEY}:("[^\\"]+"|\\S+)`, "gi");
+    return [...input.matchAll(regex)].map((m) => m[1].replace(/^"|"$/g, ""));
+  };
+
+  const extractCategories = (input: string) => {
+    const regex = new RegExp(`${CATEGORY_SEARCH_KEY}:("[^\\"]+"|\\S+)`, "gi");
+    return [...input.matchAll(regex)].map((m) => m[1].replace(/^"|"$/g, ""));
   };
 
   const maybePerformSearch = (value: string) => {
@@ -67,17 +70,43 @@ export function SearchInterface() {
     }
   };
 
-  const toggleBankSelection = (bank: string) => {
-    setSelectedBanks((prev) => {
-      const newBanks = prev.includes(bank) ? prev.filter((b) => b !== bank) : [...prev, bank];
+  const toggleEntitySelection = (entity: string) => {
+    setSelectedEntities((prev) => {
+      const newEntities = prev.includes(entity)
+        ? prev.filter((b) => b !== entity)
+        : [...prev, entity];
 
-      const baseQuery = searchQuery.replace(/bank:("[^"]+"|\S+)/gi, "").trim();
-      const newQuery = `${baseQuery} ${newBanks.map((b) => `bank:${b}`).join(" ")}`.trim();
+      const baseQuery = searchQuery
+        .replace(new RegExp(`${ENTITY_SEARCH_KEY}:("[^\\"]+"|\\S+)`, "gi"), "")
+        .trim();
+      const newQuery = `${baseQuery} ${newEntities
+        .map((b) => `${ENTITY_SEARCH_KEY}:${b}`)
+        .join(" ")}`.trim();
 
       setSearchQuery(newQuery);
       maybePerformSearch(newQuery);
 
-      return newBanks;
+      return newEntities;
+    });
+  };
+
+  const toggleCategorySelection = (category: string) => {
+    setSelectedCategories((prev) => {
+      const newCats = prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category];
+
+      const baseQuery = searchQuery
+        .replace(new RegExp(`${CATEGORY_SEARCH_KEY}:("[^\\"]+"|\\S+)`, "gi"), "")
+        .trim();
+      const newQuery = `${baseQuery} ${newCats
+        .map((c) => `${CATEGORY_SEARCH_KEY}:${c}`)
+        .join(" ")}`.trim();
+
+      setSearchQuery(newQuery);
+      maybePerformSearch(newQuery);
+
+      return newCats;
     });
   };
 
@@ -117,7 +146,8 @@ export function SearchInterface() {
               onChange={(e) => {
                 const value = e.target.value;
                 setSearchQuery(value);
-                setSelectedBanks(extractBanks(value));
+                setSelectedEntities(extractEntities(value));
+                setSelectedCategories(extractCategories(value));
                 maybePerformSearch(value);
               }}
               className="pl-10"
@@ -129,32 +159,37 @@ export function SearchInterface() {
                 <Filter className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-auto" align="start">
-              <div className="grid grid-cols-2">
-                <div className="flex flex-col gap-2">
-                  {allBanks.map((bank) => (
-                    <label key={bank} className="flex items-center gap-2 text-sm capitalize">
-                      <Checkbox
-                        checked={selectedBanks.includes(bank)}
-                        onCheckedChange={() => toggleBankSelection(bank)}
-                        id={`bank-${bank}`}
-                      />
-                      {bank}
-                    </label>
-                  ))}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {allCategories.map((category) => (
-                    <label key={category} className="flex items-center gap-2 text-sm capitalize">
-                      <Checkbox
-                        checked={selectedCategories.includes(category)}
-                        onCheckedChange={() => toggleCategorySelection(category)}
-                        id={`category-${category}`}
-                      />
-                      {category}
-                    </label>
-                  ))}
-                </div>
+            <PopoverContent className="w-40" align="start">
+              <div className="flex flex-col gap-2">
+                {allEntities.map((ent) => (
+                  <label
+                    key={ent}
+                    className="flex items-center gap-2 text-sm capitalize"
+                  >
+                    <Checkbox
+                      checked={selectedEntities.includes(ent)}
+                      onCheckedChange={() => toggleEntitySelection(ent)}
+                      id={`entity-${ent}`}
+                    />
+                    {ent}
+                  </label>
+                ))}
+              </div>
+              <hr className="my-2" />
+              <div className="flex flex-col gap-2">
+                {allCategories.map((cat) => (
+                  <label
+                    key={cat}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <Checkbox
+                      checked={selectedCategories.includes(cat)}
+                      onCheckedChange={() => toggleCategorySelection(cat)}
+                      id={`category-${cat}`}
+                    />
+                    {cat}
+                  </label>
+                ))}
               </div>
             </PopoverContent>
           </Popover>
@@ -183,14 +218,14 @@ export function SearchInterface() {
       <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-12rem)] min-h-[500px]">
         {selectedResult ? (
           <PdfViewer
-            documentUrl={`/api/file/${selectedResult.documentUrl
-              .split('/')
-              .map(encodeURIComponent)
-              .join('/')}`}
+            documentUrl={selectedResult.documentUrl.replace(
+              DATA_PATH_PREFIX,
+              "/api/file/",
+            )}
             pageNumber={selectedResult.pageNumber}
             searchTerm={highlightQuery}
             highlight={selectedResult.highlight}
-            bankName={selectedResult.bankName}
+            bankName={selectedResult.entityName}
           />
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">

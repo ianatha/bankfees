@@ -1,5 +1,6 @@
 import type { FC } from "react"
 import Image from "next/image"
+import { getEntityLogoUrl } from "@/lib/domain"
 
 interface BankLogoProps {
   bankName: string
@@ -20,7 +21,7 @@ export const BankLogo: FC<BankLogoProps> = ({ bankName, size = "md", className =
   const logoSize = sizes[size]
 
   // Get the appropriate logo URL based on bank name
-  const logoUrl = getBankLogoUrl(normalizedBankName)
+  const logoUrl = getEntityLogoUrl(normalizedBankName)
 
   return (
     <div className={`flex items-center justify-center bg-white rounded-md m-0.5 ${className}`}>
@@ -35,20 +36,4 @@ export const BankLogo: FC<BankLogoProps> = ({ bankName, size = "md", className =
   )
 }
 
-// Helper function to get the logo URL for a bank
-export function getBankLogoUrl(bankName: string): string {
-  switch (bankName) {
-    case "attica":
-      return "/bank-logos/attica-bank-logo.png"
-    case "eurobank":
-      return "/bank-logos/eurobank-logo.png"
-    case "nbg":
-      return "/bank-logos/nbg-logo.png"
-    case "piraeus":
-      return "/bank-logos/piraeus-bank-logo.png"
-    case "alpha":
-      return "/bank-logos/alpha-bank-logo.png"
-    default:
-      return "/bank-logos/generic-bank-logo.png"
-  }
-}
+// Deprecated local logo mapping kept for backward compatibility

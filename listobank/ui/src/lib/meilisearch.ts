@@ -1,6 +1,11 @@
 "use server";
 
 import { MeiliSearch } from "meilisearch";
+import {
+  MEILI_INDEX,
+  ENTITY_FIELD,
+  CATEGORY_FIELD,
+} from "@/lib/domain";
 import { uniqBy } from "es-toolkit/array";
 
 // Initialize the MeiliSearch client
@@ -11,12 +16,12 @@ const client = new MeiliSearch({
   apiKey: process.env.NEXT_PUBLIC_MEILISEARCH_API_KEY || "7FmUz2qYKDjjbhaZ3LkjNvNDkkhMUfew",
 });
 
-// The index where bank PDFs are stored (matching your Python script)
-const index = client.index("bankfees");
+// The index where PDFs are stored
+const index = client.index(MEILI_INDEX);
 
 interface SearchHit {
   id: string;
-  bank: string;
+  entity: string;
   filename: string;
   path: string;
   page: number;
@@ -24,11 +29,12 @@ interface SearchHit {
   highlight: string;
   contextSnippets: string[];
   feeAmount?: string;
+  category?: string;
 }
 
 export interface LibDocument {
   id: string;
-  bank: string;
+  entity: string;
   filename: string;
   title: string;
   path: string;
@@ -82,7 +88,7 @@ export async function searchMeiliSearch(
 
       return {
         id: hit.id,
-        bank: hit.bank,
+        entity: hit[ENTITY_FIELD],
         filename: hit.filename,
         path: hit.path,
         page: hit.page,
@@ -90,6 +96,7 @@ export async function searchMeiliSearch(
         highlight,
         contextSnippets,
         feeAmount,
+        category: hit[CATEGORY_FIELD],
       };
     });
   } catch (error) {
@@ -130,9 +137,27 @@ function extractContextSnippets(content: string, searchTerm: string, maxSnippets
 export async function getAllDocuments(): Promise<LibDocument[]> {
   try {
     // Get all documents with minimal fields
-    const allDocuments = await index.getDocuments({
-      fields: ["id", "bank", "filename", "path", "document_title", "effective_date", "category"],
-      limit: 5000,
+    const results = await index.search("", {
+      limit: 1000,
+      attributesToRetrieve: ["id", ENTITY_FIELD, CATEGORY_FIELD, "filename", "path", "page"],
+    });
+
+    // Process and deduplicate documents by path (since each page is a separate document)
+    const uniqueDocuments = new Map<string, Document>();
+
+    results.hits.forEach((hit: any) => {
+      const documentPath = hit.path;
+
+      if (!uniqueDocuments.has(documentPath)) {
+        uniqueDocuments.set(documentPath, {
+          id: hit.id,
+          entity: hit[ENTITY_FIELD],
+          filename: hit.filename,
+          path: hit.path,
+          page: hit.page,
+          category: hit[CATEGORY_FIELD],
+        });
+      }
     });
 
     // Use es-toolkit utilities for deduplication and mapping
