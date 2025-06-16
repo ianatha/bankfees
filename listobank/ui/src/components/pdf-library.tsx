@@ -261,7 +261,10 @@ function DocumentCard({ document }: { document: LibDocument }) {
             Search within document
           </Link>
           <a
-            href={document.path}
+            href={`/api/file/${document.path
+              .split('/')
+              .map(encodeURIComponent)
+              .join('/')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"

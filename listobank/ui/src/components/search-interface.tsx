@@ -183,10 +183,10 @@ export function SearchInterface() {
       <div className="bg-white rounded-lg shadow-sm border h-[calc(100vh-12rem)] min-h-[500px]">
         {selectedResult ? (
           <PdfViewer
-            documentUrl={selectedResult.documentUrl.replace(
-              "/Users/iwa/ekpizo/bankfees/data/",
-              "/api/file/"
-            )}
+            documentUrl={`/api/file/${selectedResult.documentUrl
+              .split('/')
+              .map(encodeURIComponent)
+              .join('/')}`}
             pageNumber={selectedResult.pageNumber}
             searchTerm={highlightQuery}
             highlight={selectedResult.highlight}
