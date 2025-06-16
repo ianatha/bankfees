@@ -1,8 +1,13 @@
-# Generic Document Analysis System
+# listobank
+## Comparative pricing analysis for Greek Banks
+
+## To Get Started with Data Analysis (python
 
 brew install anaconda
 /opt/homebrew/anaconda3/bin/conda init zsh
 conda env create -f environment.yml
+
+## To Update the Conda Env
 
 conda env export --name <your_env> --from-history > environment.yml
 
@@ -122,14 +127,6 @@ The system uses JSON configuration files to define:
 **Banking Domain** (`banking_domain.json`):
 - Entities: Alpha Bank, Attica Bank, Eurobank, NBG, Piraeus Bank
 - Categories: PriceList, InterestRates, PaymentFees, etc.
-
-**Insurance Domain** (create with `configure_domain.py create insurance`):
-- Entities: Allianz, AXA, Generali
-- Categories: Policy, Terms, PremiumSchedule, ClaimsInfo, etc.
-
-**Retail Domain** (create with `configure_domain.py create retail`):
-- Entities: Amazon, Walmart, Target  
-- Categories: ProductCatalog, PriceList, ReturnPolicy, etc.
 
 ## Requirements
 
