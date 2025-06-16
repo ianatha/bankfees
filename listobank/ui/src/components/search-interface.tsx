@@ -7,11 +7,7 @@ import { SearchResults } from "@/components/search-results";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSearchResults } from "@/hooks/use-search-results";
 import { parseSearchInput } from "@/lib/utils";
 import { Filter, Search } from "lucide-react";
@@ -21,6 +17,7 @@ import { useEffect, useState } from "react";
 export function SearchInterface() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedBanks, setSelectedBanks] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedResult, setSelectedResult] = useState<{
     bankName: string;
     documentUrl: string;
@@ -32,6 +29,16 @@ export function SearchInterface() {
   const searchParams = useSearchParams();
 
   const allBanks = ["alpha", "attica", "eurobank", "nbg", "piraeus"];
+  const allCategories = [
+    "PriceList",
+    "CustomerGuide",
+    "DeltioPliroforisisPeriTelon",
+    "Disclosure",
+    "GeneralTermsContract",
+    "InterestRates",
+    "PaymentFees",
+    "PriceListExclusive",
+  ];
 
   useEffect(() => {
     // Check if there's a document parameter in the URL
@@ -48,9 +55,7 @@ export function SearchInterface() {
 
   const extractBanks = (input: string) => {
     const bankRegex = /bank:("[^"]+"|\S+)/gi;
-    return [...input.matchAll(bankRegex)].map((m) =>
-      m[1].replace(/^"|"$/g, ""),
-    );
+    return [...input.matchAll(bankRegex)].map((m) => m[1].replace(/^"|"$/g, ""));
   };
 
   const maybePerformSearch = (value: string) => {
@@ -64,19 +69,31 @@ export function SearchInterface() {
 
   const toggleBankSelection = (bank: string) => {
     setSelectedBanks((prev) => {
-      const newBanks = prev.includes(bank)
-        ? prev.filter((b) => b !== bank)
-        : [...prev, bank];
+      const newBanks = prev.includes(bank) ? prev.filter((b) => b !== bank) : [...prev, bank];
 
       const baseQuery = searchQuery.replace(/bank:("[^"]+"|\S+)/gi, "").trim();
-      const newQuery = `${baseQuery} ${newBanks
-        .map((b) => `bank:${b}`)
-        .join(" ")}`.trim();
+      const newQuery = `${baseQuery} ${newBanks.map((b) => `bank:${b}`).join(" ")}`.trim();
 
       setSearchQuery(newQuery);
       maybePerformSearch(newQuery);
 
       return newBanks;
+    });
+  };
+
+  const toggleCategorySelection = (category: string) => {
+    setSelectedCategories((prev) => {
+      const newCategories = prev.includes(category)
+        ? prev.filter((c) => c !== category)
+        : [...prev, category];
+
+      const baseQuery = searchQuery.replace(/category:("[^"]+"|\S+)/gi, "").trim();
+      const newQuery = `${baseQuery} ${newCategories.map((c) => `category:${c}`).join(" ")}`.trim();
+
+      setSearchQuery(newQuery);
+      maybePerformSearch(newQuery);
+
+      return newCategories;
     });
   };
 
@@ -112,21 +129,32 @@ export function SearchInterface() {
                 <Filter className="h-4 w-4" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-40" align="start">
-              <div className="flex flex-col gap-2">
-                {allBanks.map((bank) => (
-                  <label
-                    key={bank}
-                    className="flex items-center gap-2 text-sm capitalize"
-                  >
-                    <Checkbox
-                      checked={selectedBanks.includes(bank)}
-                      onCheckedChange={() => toggleBankSelection(bank)}
-                      id={`bank-${bank}`}
-                    />
-                    {bank}
-                  </label>
-                ))}
+            <PopoverContent className="w-auto" align="start">
+              <div className="grid grid-cols-2">
+                <div className="flex flex-col gap-2">
+                  {allBanks.map((bank) => (
+                    <label key={bank} className="flex items-center gap-2 text-sm capitalize">
+                      <Checkbox
+                        checked={selectedBanks.includes(bank)}
+                        onCheckedChange={() => toggleBankSelection(bank)}
+                        id={`bank-${bank}`}
+                      />
+                      {bank}
+                    </label>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  {allCategories.map((category) => (
+                    <label key={category} className="flex items-center gap-2 text-sm capitalize">
+                      <Checkbox
+                        checked={selectedCategories.includes(category)}
+                        onCheckedChange={() => toggleCategorySelection(category)}
+                        id={`category-${category}`}
+                      />
+                      {category}
+                    </label>
+                  ))}
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -157,7 +185,7 @@ export function SearchInterface() {
           <PdfViewer
             documentUrl={selectedResult.documentUrl.replace(
               "/Users/iwa/ekpizo/bankfees/data/",
-              "/api/file/",
+              "/api/file/"
             )}
             pageNumber={selectedResult.pageNumber}
             searchTerm={highlightQuery}
@@ -167,9 +195,7 @@ export function SearchInterface() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-slate-400">
             <Search className="h-12 w-12 mb-4" />
-            <p className="text-lg">
-              Search and select a result to view the PDF
-            </p>
+            <p className="text-lg">Search and select a result to view the PDF</p>
           </div>
         )}
       </div>
