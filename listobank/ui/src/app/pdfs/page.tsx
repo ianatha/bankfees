@@ -14,7 +14,7 @@ export default function PDFsPage() {
             title="Βιβλιοθήκη Εγγράφων"
             subtitle="Περιηγηθείτε σε όλα τα τραπεζικά έγγραφα στο ευρετήριο"
           />
-          <Link href="/">
+          <Link href="/search">
             <Button variant="outline" className="flex items-center gap-2">
               <SearchIcon className="h-4 w-4" />
               Αναζήτηση
