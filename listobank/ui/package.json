@@ -27,7 +27,7 @@
     "lucide-react": "^0.515.0",
     "meilisearch": "^0.51.0",
     "mime-types": "^3.0.1",
-    "next": "15.3.3",
+    "next": "15.4.8",
     "pdfjs-dist": "3.4.120",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
